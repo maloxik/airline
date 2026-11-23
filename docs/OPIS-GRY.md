@@ -1,173 +1,141 @@
-# Opis gry do mockupów (brief dla AI)
+# Opis gry (brief dla AI)
 
-Ten plik jest samowystarczalny: wklej go w całości do dowolnego narzędzia AI i poproś o mockup.
-Na końcu są gotowe polecenia. Styl graficzny jest celowo otwarty, żeby każde narzędzie
-zaproponowało własny.
+Ten plik jest samowystarczalny: wklej go w całości do dowolnego narzędzia AI. Opisuje grę,
+a nie jej wygląd. Interfejs, układ ekranów i styl graficzny są do wymyślenia.
 
 ---
 
 ## 1. Gra w jednym zdaniu
 
-Symulator linii lotniczej na telefon, w którym planszą jest prawdziwa mapa świata, a popyt na
-loty wynika z prawdziwej geografii: z tego, ilu ludzi mieszka w pobliżu lotniska i czy między
-miastami nie jeździ szybki pociąg.
+Symulator linii lotniczej, w którym gra toczy się na prawdziwej mapie świata, a popyt na loty
+wynika z prawdziwej geografii: z tego, ilu ludzi mieszka w pobliżu lotniska i czy między
+miastami nie da się szybciej dojechać pociągiem albo samochodem.
 
 ## 2. Podstawowe fakty
 
-- **Platforma:** telefon, układ pionowy (projektuj dla 390 × 844 px), obsługa jedną ręką, kciukiem.
-- **Tryb:** jeden gracz, działa offline. Bez liczników czasu, bez sklepu z walutą premium, bez reklam.
-- **Język interfejsu:** polski (polskie znaki: ą ć ę ł ń ó ś ź ż).
-- **Odbiorca:** dorosły, który lubi lotnictwo, mapy i gry ekonomiczne. Chce czuć się jak szef
-  linii, a nie jak księgowy.
+- **Urządzenie:** telefon trzymany pionowo, obsługa dotykiem.
+- **Tryb:** jeden gracz, działa bez internetu. Bez liczników czasu, bez waluty premium, bez reklam.
+- **Język:** polski (ze znakami ą ć ę ł ń ó ś ź ż).
+- **Odbiorca:** dorosły, który lubi lotnictwo, mapy i gry ekonomiczne. Chce się czuć jak
+  szef linii lotniczej, a nie jak księgowy.
 - **Nazwa robocza:** Airline. Przykładowa linia gracza: „Silesia Air” (zmyślona).
+- **Ograniczenie prawne:** bez prawdziwych nazw i logo linii lotniczych oraz producentów samolotów.
 
-## 3. Co gracz robi (pętla gry)
+## 3. Świat gry
 
-1. Wybiera lotnisko startowe, najlepiej swoje lokalne. Dostaje jeden mały samolot (70 miejsc)
-   i trochę pieniędzy.
-2. Dotyka na mapie innego lotniska. Gra od razu pokazuje, ilu ludzi dziennie chce tam lecieć
-   i ile trasa by zarobiła.
-3. Otwiera trasę, ustawia cenę biletu i liczbę rotacji dziennie.
-4. Patrzy, jak samoloty latają po mapie. Czas płynie ciągle, można go zatrzymać lub przyspieszyć.
-5. Co tydzień dostaje wynik. Dobre trasy zarabiają, złe tracą. Za zysk kupuje kolejne samoloty.
-6. Rośnie: linia regionalna → krajowa → kontynentalna → globalna. Po drodze pojawiają się
-   rywale, sezonowość, większe samoloty i lotniska przesiadkowe.
+- Prawdziwa mapa świata z prawdziwymi lotniskami (kilka tysięcy) i miastami.
+- Każde lotnisko ma **zlewnię**: liczbę ludzi, którzy dojadą do niego w 90 minut. Katowice
+  mają 4,6 mln, Radom 0,4 mln, Londyn 12 mln.
+- Popyt na loty między dwoma lotniskami rośnie z wielkością obu zlewni i maleje z odległością.
+- **Transport lądowy konkuruje z samolotem.** Tam, gdzie jeździ szybki pociąg albo jest
+  blisko autostradą, większość ludzi nie leci. Katowice–Warszawa: pociąg jedzie 2 h 20 min
+  i zabiera 80% podróżnych. Katowice–Kraków: nikt nie poleci, bo to godzina samochodem.
+- Część kierunków jest sezonowa: Split zimą jest pusty, w lipcu popyt rośnie czterokrotnie.
+- Czas płynie ciągle. Gracz może go zatrzymać albo przyspieszyć.
+- Na tej samej mapie działają linie-rywale sterowane przez grę.
 
-## 4. Co wyróżnia tę grę (to musi być widać na mockupie)
+## 4. Co robi gracz
 
-- **Zlewnia lotniska.** Wokół lotniska widać obszar, z którego ludzie dojadą w 90 minut,
-  z liczbą mieszkańców (np. Katowice: 4,6 mln). Im większa zlewnia, tym większy popyt.
-- **Kolej i drogi zabierają pasażerów.** Na krótkich trasach z dobrym pociągiem samolot
-  przegrywa. Na trasie Katowice–Warszawa gra pokazuje linię kolejową i podział: 80% jedzie
-  lądem, 20% leci. Gracz ma to zrozumieć jednym spojrzeniem na mapę.
-- **Mapa jest główną treścią, nie tłem.** Zajmuje większość ekranu i zawsze jest widoczna.
-  Decyzje podejmuje się, dotykając mapy, a nie przeklikując tabele.
-- **Natychmiastowa odpowiedź.** Zmiana ceny biletu od razu zmienia wypełnienie i wynik.
+1. Wybiera lotnisko, z którego zaczyna, najlepiej swoje lokalne. Dostaje jeden mały samolot
+   (70 miejsc) i trochę pieniędzy.
+2. Szuka kierunków, na które warto latać. O każdym lotnisku może się dowiedzieć, ilu ludzi
+   dziennie chce tam lecieć z jego bazy i ile taka trasa mogłaby zarobić.
+3. Otwiera trasę i decyduje o dwóch rzeczach: cenie biletu i liczbie rotacji dziennie.
+   Wyższa cena to mniej chętnych, więcej rotacji to więcej miejsc i wyższe koszty.
+4. Obserwuje, jak jego samoloty latają i jak trasy sobie radzą.
+5. Co tydzień dostaje wynik finansowy. Dobre trasy zarabiają, złe tracą.
+6. Poprawia: zmienia ceny, dokłada lub zdejmuje rotacje, zamyka trasy, otwiera nowe.
+7. Za zysk kupuje albo bierze w leasing kolejne samoloty, z czasem większe i o dłuższym zasięgu.
+8. Rośnie: linia regionalna → krajowa → kontynentalna → globalna. Po drodze reaguje na
+   rywali, sezony, ceny paliwa i zdarzenia losowe.
 
-## 5. Ekrany
+## 5. Co gracz musi wiedzieć, żeby dobrze decydować
 
-### 5.1 Mapa (ekran główny, najważniejszy)
+O swojej linii:
+- stan konta i wynik ostatniego tygodnia,
+- aktualną datę i godzinę w grze, tempo upływu czasu.
 
-Zawsze widoczne:
-- nazwa i znak linii gracza, stan konta, wynik tygodnia (zysk lub strata),
-- data i godzina w grze, sterowanie czasem: pauza, normalnie, szybko,
-- dolna nawigacja: Mapa, Trasy, Flota, Finanse.
-
-Na mapie:
-- lotniska jako punkty z kodem trzyliterowym (KTW, WAW, LTN); większe miasto = większy punkt,
-- baza gracza wyraźnie wyróżniona, wokół niej zlewnia 90 minut,
-- trasy gracza jako łuki; trasa ze stratą wyraźnie inna niż zyskowna,
-- trasy rywala w innym, spokojniejszym stylu,
-- małe samoloty lecące po łukach,
-- linia kolejowa pokazywana przy trasie, na której kolej konkuruje z samolotem.
-
-Dolna karta (ok. 35–40% wysokości ekranu) zmienia się zależnie od tego, co dotknięto.
-
-### 5.2 Karta trasy (po dotknięciu własnej trasy)
-
-- skąd–dokąd i odległość,
-- wypełnienie samolotów w procentach,
-- liczba pasażerów dziennie,
-- wynik tygodnia w złotych,
-- podział podróżnych: ląd kontra samolot (tylko gdy ląd konkuruje),
-- suwak ceny biletu,
-- wybór liczby rotacji dziennie (1–6),
-- krótki werdykt słowny, np. „Ląd wygrywa”, „Brakuje 117 miejsc”, „Sezon: lipiec ×4”.
-
-### 5.3 Karta lotniska (po dotknięciu lotniska bez trasy)
-
-- nazwa miasta i kod, odległość od bazy, podgląd łuku na mapie,
-- zlewnia w milionach mieszkańców,
+O lotnisku:
+- nazwę miasta i kod trzyliterowy, odległość od bazy,
+- wielkość zlewni,
 - popyt dzienny z bazy gracza,
-- szacowany wynik tygodnia,
-- jeden wyraźny przycisk: „Otwórz trasę”.
+- czy i jak mocno konkuruje z nim transport lądowy,
+- szacowany wynik trasy, zanim ją otworzy.
 
-### 5.4 Karta bazy (po dotknięciu własnego lotniska)
+O trasie, którą już lata:
+- wypełnienie samolotów,
+- liczbę pasażerów dziennie,
+- wynik tygodnia,
+- ilu chętnych nie zmieściło się do samolotu,
+- podział podróżnych między samolot a ląd,
+- obecną cenę biletu i liczbę rotacji, z możliwością zmiany.
 
-- lista wszystkich tras z bazy: kod, kierunek, liczba rotacji, wynik tygodnia,
-- dotknięcie wiersza przenosi do karty trasy.
+O flocie:
+- jakie ma samoloty (liczba miejsc, zasięg, wiek), które są przypisane do tras, które stoją,
+- ofertę rynku: nowe, używane, leasing.
 
-### 5.5 Pozostałe ekrany (drugi plan)
+O finansach:
+- przychody i koszty tygodnia (paliwo, załogi, opłaty lotniskowe, obsługa techniczna, leasing),
+- jak zmieniał się stan konta, kredyt.
 
-- **Trasy:** wszystkie trasy posortowane po wyniku, z szybkim podglądem wypełnienia.
-- **Flota:** samoloty gracza (typ, liczba miejsc, zasięg, wiek, przypisana trasa), rynek:
-  kup nowy, kup używany, leasing.
-- **Finanse:** przychody i koszty tygodnia (paliwo, załogi, opłaty lotniskowe, obsługa, leasing),
-  wykres stanu konta, kredyt.
-- **Start gry:** wybór lotniska bazowego na mapie świata, nazwa i barwy linii.
-- **Raport tygodnia:** krótkie podsumowanie: najlepsza trasa, najgorsza trasa, co zrobił rywal.
+O rywalach:
+- gdzie latają i czy wchodzą na jego trasy.
 
-## 6. Przykładowy stan gry (użyj tych danych w mockupie)
+## 6. Co ma być w tej grze wyjątkowe
+
+To są rzeczy, które odróżniają ją od innych symulatorów linii lotniczych. Gracz powinien
+je rozumieć bez czytania instrukcji:
+
+- **Geografia decyduje.** Trasa jest dobra albo zła z powodów, które widać na mapie: wielkie
+  miasto, mała wieś, góry, morze, linia kolejowa.
+- **Kolej i drogi są przeciwnikiem.** Krótkie trasy przegrywają z lądem tak jak w rzeczywistości.
+- **Zaczynasz u siebie.** Pierwsze lotnisko to lotnisko gracza, a pierwsze trasy to te,
+  którymi sam mógłby polecieć.
+- **Decyzja i skutek są blisko siebie.** Zmiana ceny albo liczby rotacji od razu pokazuje,
+  co się stanie z wypełnieniem i wynikiem.
+
+## 7. Przykładowy stan gry
 
 Linia: Silesia Air · baza: Katowice (KTW) · konto: 4 820 000 zł · wynik tygodnia: +98 000 zł ·
-data: wtorek 16.02.2027, 08:00 · flota: 4 samoloty po 70 miejsc.
+data: wtorek 16 lutego 2027, godz. 08:00 · flota: 4 samoloty po 70 miejsc.
 
-| Trasa | Odległość | Rotacje | Wypełnienie | Wynik tygodnia | Uwaga |
+| Trasa | Odległość | Rotacje dziennie | Wypełnienie | Wynik tygodnia | Uwaga |
 |---|---|---|---|---|---|
-| KTW → WAW Warszawa | 229 km | 3 | 45% | −77 000 zł | kolej 2 h 20 zabiera 80% podróżnych |
-| KTW → DTM Dortmund | 830 km | 2 | 100% | +105 000 zł | stabilna trasa pracownicza |
-| KTW → LTN Londyn Luton | 1400 km | 1 | 100% | +46 000 zł | brakuje miejsc, warto dodać rotację |
-| KTW → BGY Bergamo | 880 km | 1 | 100% | +52 000 zł | |
-| KTW → SPU Split | 800 km | 1 | 33% | −29 000 zł | sezonowa, w lipcu popyt ×4 |
+| Katowice → Warszawa (WAW) | 229 km | 3 | 45% | −77 000 zł | kolej 2 h 20 zabiera 80% podróżnych |
+| Katowice → Dortmund (DTM) | 830 km | 2 | 100% | +105 000 zł | stabilny ruch pracowniczy |
+| Katowice → Londyn Luton (LTN) | 1400 km | 1 | 100% | +46 000 zł | 117 chętnych dziennie nie mieści się |
+| Katowice → Bergamo (BGY) | 880 km | 1 | 100% | +52 000 zł | |
+| Katowice → Split (SPU) | 800 km | 1 | 33% | −29 000 zł | sezonowa, w lipcu popyt ×4 |
 
-Lotnisko bez trasy do pokazania w karcie lotniska: AMS Amsterdam, 1012 km, zlewnia 8 mln,
-popyt 187 osób dziennie, szacowany wynik +50 000 zł tygodniowo.
+Lotnisko, na które gracz jeszcze nie lata: Amsterdam (AMS), 1012 km, zlewnia 8 mln,
+popyt 187 osób dziennie, szacowany wynik +50 000 zł tygodniowo przy jednej rotacji.
 
-Rywal (sterowany przez grę) lata z Warszawy do Paryża, Frankfurtu i Sztokholmu.
+Rywal lata z Warszawy do Paryża, Frankfurtu i Sztokholmu oraz z Krakowa do Londynu.
 
-Obszar mapy na mockupie: Europa od Londynu po Stambuł, Polska blisko środka.
-
-## 7. Ton
-
-Poważna, ale lekka. Świat lotnictwa cywilnego: tablice odlotów, karty pokładowe, mapy
-lotnicze, oznakowanie lotnisk, rozkłady lotów, barwy linii. Bez wojska, bez katastrof,
-bez postaci z kreskówek.
-
-## 8. Czego unikać
-
-- typowego „panelu z aplikacji finansowej”: ciemne tło, zaokrąglone kafelki ze wskaźnikami,
-  pastylki, szklane rozmycia, gradienty, neonowe akcenty,
-- emoji i przypadkowych ikon zamiast treści,
-- chowania mapy pod oknami i tabelami,
-- prawdziwych nazw i logo linii lotniczych oraz producentów samolotów,
-- małego tekstu: liczby mają być czytelne na telefonie trzymanym w ręce.
-
-## 9. Kierunki stylu do wypróbowania (opcjonalnie, wybierz jeden albo zaproponuj własny)
-
-1. **Papierowa mapa lotnicza.** Jasny, ciepły papier, czarny tusz, jeden kolor sygnałowy,
-   pismo maszynowe do liczb, klapkowa tablica odlotów, stemple.
-2. **Złota era lotnictwa.** Plakat linii lotniczej z lat 60.: płaskie plamy koloru,
-   geometryczne pismo, mapa tras jak z pokładowego magazynu.
-3. **Centrum operacyjne.** Ekran kontroli ruchu: precyzyjna siatka, cienkie linie, znaczniki
-   lotów z etykietami, wysoki kontrast, zero ozdobników.
-4. **Miniatura.** Mapa jak makieta lub gra planszowa: lekka głębia, drewniane pionki
-   samolotów, żetony lotnisk.
+Inne lotniska w okolicy: Kraków, Wrocław, Poznań, Gdańsk, Rzeszów, Radom, Berlin, Praga,
+Wiedeń, Budapeszt, Monachium, Frankfurt, Paryż, Kopenhaga, Oslo, Sztokholm, Rzym,
+Barcelona, Madryt, Ateny, Stambuł, Burgas.
 
 ---
 
 ## Gotowe polecenia
 
-### Dla AI, które tworzy klikalny interfejs (kod HTML lub aplikację)
+### Dla AI, które buduje klikalny interfejs
 
-> Na podstawie powyższego opisu zaprojektuj i zbuduj klikalny mockup ekranu głównego (5.1)
-> z kartami 5.2, 5.3 i 5.4, w układzie pionowym 390 × 844. Użyj danych z punktu 6.
-> Mapa ma zajmować większość ekranu. Zaproponuj własny, wyrazisty styl graficzny zgodny
-> z punktem 7 i omijający punkt 8. Najpierw opisz w trzech zdaniach wybrany kierunek,
-> potem zbuduj mockup. Interfejs po polsku.
+> Przeczytaj powyższy opis gry. Zaprojektuj od zera jej interfejs na telefon w układzie
+> pionowym i zbuduj klikalny mockup z danymi z punktu 7. Opis celowo nie mówi, jak gra ma
+> wyglądać ani jak ułożyć ekrany: to Twoja decyzja. Zanim zaczniesz budować, napisz krótko,
+> jaki pomysł na interfejs wybrałeś i dlaczego pasuje do tej gry. Interfejs po polsku.
 
-### Dla AI, które generuje obrazy (po angielsku, bo tak działają lepiej)
+### Dla AI, które generuje obrazy (po angielsku)
 
-> Mobile game UI mockup, portrait 9:19.5, airline management simulator played on a real map
-> of Europe. The map fills most of the screen: airports as dots with three-letter codes
-> (KTW, WAW, LTN, DTM, BGY, SPU, AMS), curved flight routes fanning out from Katowice in
-> southern Poland, tiny aircraft flying along them, a circle around the home airport showing
-> its 90-minute catchment area, one short route to Warsaw running next to a railway line.
-> Top strip: airline name "SILESIA AIR", balance "4 820 000 zł", date and time-speed controls.
-> Bottom panel covering about a third of the screen: route card "KATOWICE – WARSZAWA, 229 km",
-> load factor 45%, 189 passengers per day, weekly result −77 000 zł, a bar splitting
-> travellers 80% rail / 20% air, a ticket price slider, a rotations-per-day selector.
-> Bottom navigation with four tabs: MAPA, TRASY, FLOTA, FINANSE.
-> Style: [wstaw jeden kierunek z punktu 9, np. "printed aeronautical chart on warm paper,
-> black ink, one signal colour, split-flap departure board lettering, rubber stamps"].
-> Civil aviation mood. No dark fintech dashboard, no glassmorphism, no neon, no gradients,
-> no emoji, no real airline logos. Crisp, legible, flat.
+> Design the mobile UI (portrait) for an original airline management game played on a real
+> world map. The player runs "Silesia Air" from Katowice, Poland, flying routes to Warsaw,
+> Dortmund, London, Bergamo and Split. Demand depends on real geography: how many people
+> live within 90 minutes of each airport, and whether rail or road beats the plane on short
+> routes (the Warsaw route is losing money because 80% of travellers take the train).
+> The player sets ticket prices and daily rotations and sees load factor and weekly profit
+> change. Show the moment the player looks at the loss-making Katowice–Warsaw route:
+> 229 km, 45% load factor, 189 passengers a day, −77 000 zł a week. Account balance
+> 4 820 000 zł. All text in Polish. Invent the layout and the visual style yourself.
+> No real airline or aircraft manufacturer names or logos.

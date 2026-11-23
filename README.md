@@ -10,7 +10,7 @@ Stan: **pomysł + roadmapa** (2026-11-23). Kodu jeszcze nie ma.
 - [docs/ROADMAPA.md](docs/ROADMAPA.md) — plan w plastrach, od spike'a technicznego do sklepu
 - [docs/KONKURENCJA.md](docs/KONKURENCJA.md) — co już istnieje i gdzie jest luka
 - [docs/DANE-I-LICENCJE.md](docs/DANE-I-LICENCJE.md) — mapy, lotniska, miasta: skąd brać i na jakich warunkach
-- [docs/OPIS-GRY.md](docs/OPIS-GRY.md) — opis gry do wklejenia w inne AI (mockupy)
+- [docs/OPIS-GRY.md](docs/OPIS-GRY.md) — opis gry do wklejenia w inne AI, bez sugestii interfejsu
 - [docs/mockup/](docs/mockup/index.html) — klikalne mockupy ekranu głównego (wymagają serwera i internetu): v2 papierowa mapa lotnicza, v3 złota era
 
 ## Struktura
