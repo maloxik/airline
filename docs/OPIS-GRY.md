@@ -13,7 +13,8 @@ miastami nie da się szybciej dojechać pociągiem albo samochodem.
 
 ## 2. Podstawowe fakty
 
-- **Urządzenie:** telefon trzymany pionowo, obsługa dotykiem.
+- **Urządzenia:** komputer (przeglądarka i Steam, mysz, szeroki ekran) oraz telefon (dotyk, pionowo).
+  Ta sama gra ma działać na obu.
 - **Tryb:** jeden gracz, działa bez internetu. Bez liczników czasu, bez waluty premium, bez reklam.
 - **Język:** polski (ze znakami ą ć ę ł ń ó ś ź ż).
 - **Odbiorca:** dorosły, który lubi lotnictwo, mapy i gry ekonomiczne. Chce się czuć jak
@@ -23,7 +24,11 @@ miastami nie da się szybciej dojechać pociągiem albo samochodem.
 
 ## 3. Świat gry
 
-- Prawdziwa mapa świata z prawdziwymi lotniskami (kilka tysięcy) i miastami.
+- Prawdziwa mapa z prawdziwymi lotniskami i miastami. Dane o okolicy każdego lotniska są
+  prawdziwe: liczba mieszkańców, zamożność regionu, liczba turystów w każdym miesiącu,
+  kraje, z którymi region jest powiązany przez migrację.
+- Podróżni dzielą się na trzy rodzaje: służbowi (płacą dużo, latają cały rok), turyści
+  (sezonowi, patrzą na cenę), rodzina i praca (jeżdżą tam, gdzie mieszkają ich bliscy).
 - Każde lotnisko ma **zlewnię**: liczbę ludzi, którzy dojadą do niego w 90 minut. Katowice
   mają 4,6 mln, Radom 0,4 mln, Londyn 12 mln.
 - Popyt na loty między dwoma lotniskami rośnie z wielkością obu zlewni i maleje z odległością.
@@ -46,8 +51,15 @@ miastami nie da się szybciej dojechać pociągiem albo samochodem.
 5. Co tydzień dostaje wynik finansowy. Dobre trasy zarabiają, złe tracą.
 6. Poprawia: zmienia ceny, dokłada lub zdejmuje rotacje, zamyka trasy, otwiera nowe.
 7. Za zysk kupuje albo bierze w leasing kolejne samoloty, z czasem większe i o dłuższym zasięgu.
-8. Rośnie: linia regionalna → krajowa → kontynentalna → globalna. Po drodze reaguje na
-   rywali, sezony, ceny paliwa i zdarzenia losowe.
+8. Wchodzi na nowe lotniska. To inwestycja: opłaty, obsługa, na dużych lotniskach limit
+   lotów. Małe lotniska same składają oferty: dopłaty i zniżki za gwarancję lotów.
+9. Buduje markę. W nowym mieście nikt linii nie zna, więc trasa rozkręca się powoli.
+   Kampanie reklamowe kieruje się w konkretny region, miasto albo trasę. Reputacja zależy
+   od punktualności, wygody i wieku samolotów.
+10. Zatrudnia pilotów, personel pokładowy i mechaników. Szkolenie trwa, niezadowolona
+    załoga strajkuje.
+11. Rośnie: linia regionalna → krajowa → europejska → światowa. Otwiera kolejne bazy
+    i lotnisko przesiadkowe. Po drodze reaguje na rywali, sezony, ceny paliwa i zdarzenia.
 
 ## 5. Co gracz musi wiedzieć, żeby dobrze decydować
 
@@ -72,7 +84,17 @@ O trasie, którą już lata:
 
 O flocie:
 - jakie ma samoloty (liczba miejsc, zasięg, wiek), które są przypisane do tras, które stoją,
-- ofertę rynku: nowe, używane, leasing.
+- ofertę rynku: nowe od producenta (taniej przy większym zamówieniu, ale z czekaniem),
+  używane od ręki, leasing; pięć klas od turbośmigłowego na 70 miejsc po szerokokadłubowy na 300.
+
+O marce i ludziach:
+- gdzie linia jest znana, a gdzie nie; jaką ma reputację i dlaczego,
+- trwające kampanie i ich skutek,
+- liczbę i zadowolenie załóg.
+
+O lotniskach, na które chce wejść:
+- koszt wejścia i opłaty, wolne terminy lotów,
+- oferty składane przez lotniska i samorządy.
 
 O finansach:
 - przychody i koszty tygodnia (paliwo, załogi, opłaty lotniskowe, obsługa techniczna, leasing),

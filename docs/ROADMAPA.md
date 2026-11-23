@@ -1,111 +1,173 @@
 # Roadmapa
 
-Wersja 1, 2026-11-23. Plastry jak w Urzędzie: każdy kończy się czymś, co da się uruchomić
-na telefonie i ocenić.
+Wersja 2, 2026-11-23. Zastępuje wersję 1 (sześć plastrów pod telefon). Projekt gry:
+[PROJEKT-GRY.md](PROJEKT-GRY.md).
 
-## Założenia
+## Zasady
 
-- **Wyróżnik:** mapa jako plansza. Popyt wynika z prawdziwej geografii (ludność w zasięgu
-  lotniska, odległość, konkurencja kolei). Uzasadnienie: [KONKURENCJA.md](KONKURENCJA.md).
-- **Model:** jeden gracz, offline, bez liczników. Płatność jednorazowa albo darmowy start
-  z odblokowaniem pełnej gry.
-- **Platformy:** Android najpierw, iOS z tego samego kodu (KMP), gdy będzie Mac.
-- **Stos:** Kotlin Multiplatform + Compose Multiplatform, mapa MapLibre, dane wbudowane w grę.
-- **Bez backendu** w wersji 1. Rankingi ewentualnie przez Play Games, jak w Urzędzie.
+- Każda faza kończy się czymś, co da się uruchomić w przeglądarce pod linkiem i ocenić.
+- Najpierw sprawdzamy to, co może wywrócić projekt: czy prawdziwe dane dają wiarygodny popyt
+  i czy podstawowa pętla bawi. Dopiero potem dokładamy systemy.
+- Rdzeń symulacji jest osobnym modułem bez interfejsu, z testami. Interfejs można wymienić,
+  symulacji nie.
+- Rozmiar faz podaję względnie (S, M, L, XL), bez dat: tempo zależy od tego, ile sesji
+  tygodniowo idzie na ten projekt obok MAKROnetu, ONDiesel i Urzędu.
 
-## Otwarte decyzje (do rozstrzygnięcia przed Plastrem 2)
+## Mapa drogowa w skrócie
 
-1. Czas gry: ciągły z pauzą i przyspieszeniem (polecam) czy tury tygodniowe.
-2. Epoka: tylko współczesność (polecam na start) czy kampania historyczna od lat 50.
-3. Samoloty: prawdziwe nazwy czy zmyślone (patrz [DANE-I-LICENCJE.md](DANE-I-LICENCJE.md)).
-4. Nazwa gry.
+| Faza | Nazwa | Rozmiar | Wynik |
+|---|---|---|---|
+| 0 | Decyzje i fundament | S | repozytorium, stos, pusta aplikacja pod linkiem |
+| 1 | Prawdziwy świat | L | paczka danych Europy i mapa popytu, którą da się oglądać |
+| 2 | Rdzeń ekonomii | M | symulacja bez interfejsu, zbalansowana w testach |
+| 3 | Pierwsza grywalna wersja | L | jedna baza, trasy, ceny, tydzień po tygodniu |
+| 4 | Flota i siatka | L | rynek samolotów, nowe lotniska, bazy, oferty samorządów |
+| 5 | Marka i ludzie | M | marketing na mapie, reputacja, załogi |
+| 6 | Rywale i żywy świat | L | linie sterowane przez grę, zdarzenia, karty decyzji |
+| 7 | Przesiadki i późna gra | M | węzły, program lojalnościowy, przejęcia |
+| 8 | Kariera, scenariusze, samouczek | M | pełna rozgrywka od startu do późnej gry |
+| 9 | Szlif i wydanie | L | demo w przeglądarce, Steam, potem telefon |
+| 10 | Po premierze | — | reszta świata, wyzwanie tygodnia, cargo |
+
+Bramki, na których projekt może się zatrzymać: po fazie 1 (czy dane mają sens) i po fazie 3
+(czy gra bawi).
 
 ---
 
-## Plaster 0: Spike techniczny (bramka „robimy / nie robimy tak”)
+## Faza 0: Decyzje i fundament (S)
 
-Cel: sprawdzić najryzykowniejszą rzecz, czyli mapę w Compose Multiplatform.
+- Zatwierdzić otwarte decyzje z projektu gry (platformy, stos, zasięg mapy, czas gry).
+- Repozytorium ze zdalnym adresem, projekt TypeScript, wdrożenie na Vercel po każdym commicie.
+- Podział na moduły: `sim` (symulacja, bez interfejsu), `data` (budowanie paczki danych),
+  `app` (mapa i interfejs).
+- Pusta aplikacja: mapa Europy z własnym stylem, działająca na komputerze i na telefonie.
 
-- Pusty projekt KMP (`shared` + `androidApp`), build z CLI.
-- Mapa MapLibre w Compose, własny ciemny styl, kafle z paczki PMTiles.
-- 4000 lotnisk jako warstwa punktów, płynne przesuwanie i zoom na średnim telefonie.
-- Łuk ortodromy między dwoma lotniskami i ikona samolotu poruszająca się po nim.
+**Gotowe, gdy:** pod linkiem otwiera się mapa, a testy i wdrożenie przechodzą automatycznie.
 
-**Gotowe, gdy:** APK pokazuje świat, lotniska i lecący samolot, bez przycięć.
-**Jeśli się nie uda:** plan B to mapa rysowana samodzielnie na Canvas z danych Natural Earth
-(mniej szczegółów, pełna kontrola), plan C to wersja webowa (MapLibre GL JS).
+## Faza 1: Prawdziwy świat (L)
 
-## Plaster 1: Dane świata
+Najważniejsza faza. Tu rozstrzyga się, czy obietnica „prawdziwych danych” jest do spełnienia.
 
-- `tools/`: skrypt pobiera OurAirports + GeoNames i buduje `data/processed/world.json`.
-- Filtr lotnisk: duże i średnie z ruchem rozkładowym, długość pasa, strefa czasowa.
-- Każde lotnisko dostaje **zlewnię**: sumę ludności miast w zasięgu dojazdu, ważoną odległością.
-- Model popytu między parą lotnisk (grawitacyjny): zlewnia A × zlewnia B / odległość^β,
-  z poprawkami na zamożność kraju i turystykę.
-- Kalibracja na oko: Londyn–Nowy Jork ma wyjść ogromny, Radom–Szymany bliski zeru.
+- Potok danych w `data/`: pobranie, oczyszczenie i złożenie w jedną paczkę:
+  lotniska (OurAirports), ludność w siatce (GHSL), miasta (GeoNames), zamożność regionów
+  (Eurostat, Bank Światowy), noclegi turystów miesięcznie (Eurostat), migranci między krajami
+  (ONZ), kolej i autostrady (OpenStreetMap).
+- Zlewnia każdego lotniska: ludność w zasięgu dojazdu, z podziałem między sąsiednie lotniska
+  (Katowice i Kraków dzielą się ludźmi).
+- Model popytu z trzema rodzajami podróżnych: służbowi, turyści, rodzina i praca.
+- Konkurencja lądowa: szacowany czas dojazdu pociągiem lub samochodem między miastami.
+- **Kalibracja na prawdziwym ruchu**: porównanie modelu z danymi Eurostatu o ruchu między
+  lotniskami. Cel: dla większości dużych tras wynik w rozsądnym przedziale od rzeczywistości.
+- Narzędzie do oglądania: mapa, na której po kliknięciu lotniska widać jego kartę i popyt
+  do wszystkich innych, z rozbiciem na rodzaje podróżnych.
 
-**Gotowe, gdy:** po dotknięciu dwóch lotnisk na mapie widać sensowną liczbę pasażerów dziennie.
+**Gotowe, gdy:** model sam „odkrywa” znane prawdy (Śląsk–Zagłębie Ruhry, Polska–Wielka Brytania,
+wakacyjne szczyty nad Morzem Śródziemnym, martwy Radom) i mamy raport z kalibracji.
 
-## Plaster 2: Rdzeń symulacji (czysty Kotlin, testy)
+**Ryzyko:** dane z różnych źródeł nie pasują do siebie (inne lata, inne podziały regionów).
+Jeśli kalibracja nie wyjdzie, upraszczamy model, zamiast udawać dokładność.
 
-- Zegar gry, flota, trasy, rozkład (ile rotacji dziennie mieści samolot).
-- Przychód: popyt × funkcja ceny × wypełnienie. Koszty: paliwo, załoga, opłaty lotniskowe,
-  obsługa techniczna, leasing.
-- Raport finansowy tygodniowy, bankructwo.
-- Zapis i odczyt stanu gry.
+## Faza 2: Rdzeń ekonomii (M)
 
-**Gotowe, gdy:** testy przechodzą, a symulacja 5 lat gry w testach daje wiarygodne wyniki
-(zła trasa traci, dobra zarabia, nie da się zarabiać w nieskończoność jednym trikiem).
+- Czas gry, flota, trasy, liczba lotów, wykorzystanie samolotu w ciągu doby.
+- Przychód: popyt, cena, wypełnienie, dopłaty. Koszty: paliwo, załoga, opłaty, obsługa, raty.
+- Rozkręcanie nowej trasy w czasie, sezonowość miesiąc po miesiącu.
+- Rachunek tygodniowy, kredyt, bankructwo. Zapis i odczyt gry.
+- Symulacje wieloletnie w testach jako narzędzie do balansu.
 
-## Plaster 3: Pierwsza grywalna pętla (MVP)
+**Gotowe, gdy:** w testach rozsądny gracz rośnie, nierozsądny bankrutuje, a żadna pojedyncza
+sztuczka nie daje pieniędzy bez końca.
 
-- Wybór lotniska startowego (dowolne na świecie, podpowiedź: najbliższe graczowi).
-- Jeden używany turbośmigłowiec i mały kapitał.
-- Otwórz trasę → ustaw cenę i częstotliwość → patrz, jak lata → czytaj wynik → kup drugi samolot.
-- Ekrany: mapa (główny), karta lotniska, karta trasy, flota, finanse.
-- Samouczek w pierwszych 5 minutach.
+## Faza 3: Pierwsza grywalna wersja (L)
+
+- Wybór lotniska startowego z prawdziwą kartą okolicy.
+- Otwieranie i zamykanie tras, cena, liczba lotów, podgląd skutków przed decyzją.
+- Samoloty widoczne na mapie, upływ czasu z pauzą i przyspieszeniem.
+- Podsumowanie tygodnia. Kupno kolejnego samolotu (na razie jeden typ, prosta oferta).
+- Interfejs projektowany od zera na podstawie tego, co wybierzesz z mockupów (własnych
+  i z innych AI). Do tej fazy żaden wygląd nie jest przesądzony.
 
 **Gotowe, gdy:** obca osoba gra 20 minut bez tłumaczenia i chce grać dalej.
-**To jest moment prawdy:** jeśli pętla nie bawi, wracamy do projektu zamiast dokładać funkcje.
+**Bramka:** jeśli pętla nie bawi, wracamy do projektu gry.
 
-## Plaster 4: Głębia
+## Faza 4: Flota i siatka (L)
 
-- **Kolej i drogi:** na krótkich trasach z dobrą koleją popyt lotniczy spada (dane z OSM).
-- Konkurenci AI otwierający trasy i odpowiadający na ceny.
-- Przesiadki: pasażer leci A→hub→B, więc hub zaczyna mieć sens.
-- Sloty na zatłoczonych lotniskach, ograniczenia pasa i zasięgu.
-- Rynek samolotów: nowe, używane, leasing, starzenie i przeglądy.
-- Zdarzenia: ceny paliwa, sezonowość (wakacje, święta), strajki, pogoda.
+- Katalog samolotów w pięciu klasach, ze zmyślonymi nazwami i realistycznymi parametrami.
+- Trzy drogi zakupu: nowy z kolejką dostaw i rabatem za ilość, używany, leasing.
+- Starzenie, przeglądy, sprzedaż. Układ kabiny. Premia za jednolitą flotę.
+- Otwarcie nowego lotniska jako inwestycja, opłaty, sloty na dużych lotniskach.
+- Druga baza.
+- **Oferty samorządów i lotnisk** (propozycja 1 z projektu): dopłaty i zniżki za gwarancję lotów.
 
-## Plaster 5: Progresja i szlif
+**Gotowe, gdy:** da się zbudować linię na 20–30 samolotów różnymi drogami i każda z dróg
+(tania, tradycyjna, regionalna) ma sens.
 
-- Cele i etapy rozwoju: linia regionalna → krajowa → kontynentalna → globalna.
-- Scenariusze startowe (np. „tani przewoźnik z Katowic”, „linia wyspiarska”).
-- Malowanie i nazwa linii, klasy kabin, reputacja.
-- Dźwięk, animacje, dopracowanie mapy, osiągnięcia.
-- Wersja angielska (rynek gatunku jest głównie zagraniczny).
+## Faza 5: Marka i ludzie (M)
 
-## Plaster 6: Wydanie
+- Znajomość marki jako warstwa mapy, rosnąca tam, gdzie linia lata.
+- Kampanie kierowane w region, miasto albo trasę; sponsoring; promocja otwarcia.
+- Reputacja z punktualności, odwołań, wieku floty i wygody.
+- Piloci, personel pokładowy, mechanicy: zatrudnianie z opóźnieniem, płace, zadowolenie, strajk.
+- Opinie pasażerów i postacie tłumaczące, kto lata daną trasą (propozycja 5).
 
-- Test zamknięty w Google Play, poprawki balansu.
-- Strona sklepu, zrzuty, zwiastun.
-- Ekran atrybucji licencji.
-- iOS, gdy będzie Mac.
+**Gotowe, gdy:** ekspansja „od sąsiada do sąsiada” i „skok z dużą kampanią” są dwiema
+różnymi, opłacalnymi strategiami.
 
-## Później (poza wersją 1)
+## Faza 6: Rywale i żywy świat (L)
 
-- Tygodniowe wyzwanie z jednym seedem dla wszystkich i ranking.
-- Kampania historyczna (od śmigłowców po odrzutowce).
-- Cargo, sojusze, własne terminale.
+- Trzy typy linii sterowanych przez grę: narodowa, tani agresor, regionalna.
+- Reakcje na ceny, wchodzenie na trasy gracza, wojny cenowe, bankructwa.
+- Zdarzenia: paliwo, pogoda, strajki, awarie, wydarzenia w prawdziwych miastach.
+- Kalendarz przyszłości: nowe linie kolejowe i rozbudowy lotnisk (propozycja 4).
+- Karty decyzji prezesa (propozycja 7).
+
+**Gotowe, gdy:** dwie rozgrywki z tego samego lotniska przebiegają wyraźnie inaczej.
+
+## Faza 7: Przesiadki i późna gra (M)
+
+- Pasażerowie przesiadkowi i lotnisko węzłowe.
+- Program lojalnościowy, klasa biznes jako osobny produkt.
+- Zabezpieczenie ceny paliwa, inwestor.
+- Przejęcie rywala, wspólne loty.
+
+**Gotowe, gdy:** po zbudowaniu węzła gra ma nowe, ciekawe decyzje, a nie tylko większe liczby.
+
+## Faza 8: Kariera, scenariusze, samouczek (M)
+
+- Etapy kariery od linii regionalnej do europejskiej, cele i odblokowania.
+- Trzy do pięciu scenariuszy z celem.
+- Samouczek wpleciony w pierwsze kwadranse gry.
+- Porównanie z rzeczywistością po otwarciu trasy (propozycja 8).
+- Wersja angielska (rynek gatunku jest głównie zagraniczny) i polska.
+
+**Gotowe, gdy:** da się przejść od pierwszego samolotu do późnej gry bez dziur i zastojów.
+
+## Faza 9: Szlif i wydanie (L)
+
+- Dźwięk, animacje, dopracowanie mapy, wydajność na słabszych telefonach.
+- Darmowe demo w przeglądarce (pierwszy etap kariery).
+- Strona na Steamie wcześnie, żeby zbierać listy życzeń; wersja desktopowa; osiągnięcia.
+- Telefon: opakowanie aplikacji, test zamknięty w Google Play.
+- Ekran z atrybucją źródeł danych.
+
+**Gotowe, gdy:** gra jest do kupienia na Steamie, a demo działa pod linkiem.
+
+## Faza 10: Po premierze
+
+- Reszta świata: Ameryka Północna, Azja, loty dalekiego zasięgu, prawa przewozowe.
+- Wyzwanie tygodnia z jednym startem dla wszystkich.
+- Cargo. Kampania historyczna. Sojusze.
 
 ---
 
 ## Największe ryzyka
 
-| Ryzyko | Co z nim robimy |
-|---|---|
-| Mapa w Compose Multiplatform okaże się niedojrzała | Plaster 0 jest właśnie po to; plany B i C opisane |
-| Gra okaże się „arkuszem z mapą”, bez frajdy | Plaster 3 jako twarda bramka, test na obcej osobie |
-| Model popytu daje bzdury | kalibracja na znanych parach miast już w Plastrze 1 |
-| Zatłoczony rynek | trzymać wyróżnik (geografia, offline, bez liczników), nie gonić liderów na funkcje |
-| Rozmiar danych mapy | tylko małe przybliżenia, paczka PMTiles liczona w dziesiątkach MB |
+| Ryzyko | Kiedy wyjdzie | Co robimy |
+|---|---|---|
+| Prawdziwe dane nie dają wiarygodnego popytu | faza 1 | kalibracja na danych Eurostatu, w razie czego prostszy model |
+| Gra jest arkuszem z mapą, bez frajdy | faza 3 | twarda bramka i test na obcej osobie |
+| Zakres jest za duży na jedną osobę z pomocą AI | cały czas | fazy 4–7 są od siebie niezależne i każdą można przyciąć albo przesunąć za premierę |
+| Zatłoczony rynek | faza 9 | trzymać wyróżniki (prawdziwe dane, oferty samorządów, marka na mapie), nie gonić liderów na liczbę funkcji |
+| Jedna aplikacja na komputer i telefon wymaga dwóch układów interfejsu | faza 3 | projektować oba od początku, mapa wspólna, panele osobne |
+| Wydajność mapy na słabszych telefonach | faza 0 i 9 | sprawdzić już przy pustej aplikacji |
+| Licencje danych | faza 1 | wszystkie źródła pozwalają na użytek komercyjny z podaniem źródła; potwierdzić przed wydaniem |

@@ -7,7 +7,8 @@ Stan: **pomysł + roadmapa** (2026-11-23). Kodu jeszcze nie ma.
 
 ## Dokumenty
 
-- [docs/ROADMAPA.md](docs/ROADMAPA.md) — plan w plastrach, od spike'a technicznego do sklepu
+- [docs/PROJEKT-GRY.md](docs/PROJEKT-GRY.md) — czym gra ma być: systemy, dane, platformy, własne propozycje
+- [docs/ROADMAPA.md](docs/ROADMAPA.md) — plan w fazach, od danych do wydania
 - [docs/KONKURENCJA.md](docs/KONKURENCJA.md) — co już istnieje i gdzie jest luka
 - [docs/DANE-I-LICENCJE.md](docs/DANE-I-LICENCJE.md) — mapy, lotniska, miasta: skąd brać i na jakich warunkach
 - [docs/OPIS-GRY.md](docs/OPIS-GRY.md) — opis gry do wklejenia w inne AI, bez sugestii interfejsu
@@ -28,5 +29,6 @@ Stan: **pomysł + roadmapa** (2026-11-23). Kodu jeszcze nie ma.
 
 ## Proponowany stos
 
-Kotlin Multiplatform + Compose Multiplatform (ten sam układ co w Urzędzie), mapa przez MapLibre
-z wektorowymi kaflami opartymi o OpenStreetMap. Uzasadnienie i ryzyka: ROADMAPA, Plaster 0.
+Rekomendacja z 2026-11-23 (do zatwierdzenia): TypeScript + MapLibre GL JS, wdrożenie na Vercel;
+przeglądarka i Steam jako główne platformy, telefon przez opakowanie tej samej aplikacji.
+Wcześniejszy pomysł (Kotlin Multiplatform) i układ folderów poniżej są do zmiany w fazie 0.

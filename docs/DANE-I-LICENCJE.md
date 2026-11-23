@@ -41,6 +41,21 @@ graczem to zły układ. Dedykowany produkt Google dla gier został wycofany kilk
 - Do rozważenia później: siatka gęstości zaludnienia (GHSL, WorldPop) dla dokładniejszych
   stref dojazdu.
 
+## Prawdziwe statystyki regionów (sprawdzone 2026-11-23)
+
+| Zbiór | Co daje | Licencja |
+|---|---|---|
+| [GHSL GHS-POP](https://human-settlement.emergency.copernicus.eu/) (Komisja Europejska) | ludność świata w siatce 1 km, do liczenia zlewni | CC BY 4.0, otwarte i darmowe |
+| [Eurostat](https://ec.europa.eu/eurostat/help/copyright-notice) | zamożność regionów NUTS, noclegi turystów miesięcznie w regionach NUTS 2 (tabela `tour_occ_nin2m`), ruch pasażerów między lotniskami | użytek komercyjny dozwolony z podaniem źródła; wyjątek: dane pochodzące spoza Eurostatu |
+| [ONZ, International Migrant Stock](https://www.un.org/development/desa/pd/content/international-migrant-stock) | ilu migrantów z każdego kraju mieszka w każdym kraju, 1990–2024 | wg dokumentacji edycji 2020: CC BY 3.0 IGO; potwierdzić dla edycji 2024 |
+| Bank Światowy | zamożność krajów poza Europą | CC BY 4.0 (z pamięci, do potwierdzenia) |
+
+Uwagi:
+- Dokładnej tabeli Eurostatu z ruchem między parami lotnisk nie potwierdziłem po kodzie.
+  Eurostat zbiera takie dane (pasażerowie między parami lotnisk), ale właściwą tabelę trzeba
+  wskazać na początku fazy 1.
+- Zmodyfikowane dane Eurostatu trzeba oznaczyć jako zmienione.
+
 ## Kolej i drogi (wyróżnik gry)
 
 - Linie kolejowe dużych prędkości i autostrady z OSM (ODbL), przeliczone w `tools/` na prosty
@@ -57,4 +72,5 @@ graczem to zły układ. Dedykowany produkt Google dla gier został wycofany kilk
 
 ## Ekran „O grze” musi zawierać
 
-© OpenStreetMap contributors (ODbL) · GeoNames (CC BY 4.0) · OurAirports · Natural Earth · MapLibre
+© OpenStreetMap contributors (ODbL) · GeoNames (CC BY 4.0) · OurAirports · Natural Earth · MapLibre ·
+GHSL, Komisja Europejska (CC BY 4.0) · Eurostat · ONZ DESA · Bank Światowy
