@@ -210,6 +210,50 @@ Uszeregowane od tych, które uważam za najmocniejsze.
    naprawdę istnieje i ilu pasażerów nią lata (z danych Eurostatu). Buduje zaufanie do modelu
    i daje frajdę: „wymyśliłem trasę, którą ktoś naprawdę otworzył”.
 
+## 6a. Dane: raz, przy budowaniu gry
+
+Dane pobiera się raz i wbudowuje w grę jako gotową paczkę. Gra nie łączy się z żadnym
+serwerem statystycznym. Powody: działa offline, nie ma kosztów serwera, każda rozgrywka jest
+powtarzalna, a źródła i tak zmieniają się najwyżej raz w roku. Paczkę odświeża się przy
+większych wydaniach. Ręcznie dopisywany jest tylko kalendarz przyszłych inwestycji i wydarzeń.
+
+## 6b. Ruch i grafika
+
+Mapa ma żyć cały czas. Statyczne kropki i linie odpadają.
+
+**Ruch na mapie**
+- Każdy lot jest widoczny: samolot startuje, leci po łuku, ląduje, stoi na ziemi podczas
+  obsługi i wraca. Samoloty rywali też.
+- Tempo: przy zwykłej prędkości doba w grze trwa około minuty, więc dwugodzinny lot widać
+  przez kilka sekund. Przy przyspieszeniu pojedyncze samoloty zamieniają się w płynący ruch
+  wzdłuż tras, żeby mapa nie migała.
+- Granica dnia i nocy przesuwa się po mapie, w nocy świecą miasta.
+- Pogoda jako przesuwające się fronty: zimą śnieg nad lotniskiem oznacza opóźnienia.
+- Zdarzenia mają swój ruch: lądowanie daje krótki sygnał przy lotnisku, otwarcie trasy rysuje
+  łuk, kampania reklamowa rozlewa znajomość marki po regionie, sezon zmienia odcień mapy.
+- Technicznie: samoloty rysowane warstwą graficzną mapy, a nie elementami strony, bo tylko
+  tak da się płynnie pokazać setki i tysiące lotów naraz.
+
+**Prawdziwe lotniska z bliska**
+- OpenStreetMap ma dokładne kształty pasów, dróg kołowania i płyt postojowych. Po przybliżeniu
+  lotnisko wygląda jak prawdziwe, a na płycie stoją samoloty gracza w jego barwach.
+  To tani sposób na mocne wrażenie, bo geometria jest gotowa.
+
+**Samoloty i barwy**
+- Pięć klas samolotów, każda z własną sylwetką: widok z boku (katalog, flota) i z góry (mapa,
+  płyta lotniska). Rysowane wektorowo, żeby dobrze wyglądały w każdej wielkości.
+- **Malowanie linii**: gracz wybiera kolory, wzór na kadłubie i znak na ogonie. Malowanie
+  nakłada się automatycznie na każdy samolot, na mapie i w katalogu.
+- Zmyślone typy, realistyczne proporcje. Bez prawdziwych nazw i znaków producentów.
+
+**Zakup floty**
+- Katalog producenta z sylwetkami w barwach gracza i porównaniem parametrów do tras, na
+  których samolot miałby latać („zmieści się na pasie w Splicie, doleci do Londynu”).
+- Rynek używanych: konkretne egzemplarze z wiekiem, przebiegiem i historią.
+- Zamówiony samolot nie pojawia się znikąd: w dniu dostawy leci z fabryki do bazy i widać
+  to na mapie. Pierwszy lot nowego typu jest małym wydarzeniem.
+- Flota jako hangar: samoloty widać jako obiekty, ze stanem (leci, stoi, w przeglądzie).
+
 ## 7. Czego nie będzie w wersji 1
 
 - gry wieloosobowej i serwera,
