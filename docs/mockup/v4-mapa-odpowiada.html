@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Airline — mockup v4 (mapa odpowiada)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script>/* w ukrytej karcie przeglądarka wstrzymuje animację; mapa i tak ma się narysować */
+if(document.hidden){window.requestAnimationFrame=cb=>setTimeout(()=>cb(performance.now()),33);}</script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+/* Pomysł: nie ma paneli ani tabel. Mapa sama jest wykresem (koła popytu, grubość tras),
+   a gra odpowiada zdaniami przy miejscu, którego dotyczą. Liczby w zdaniach się przeciąga. */
+:root{
+  --land:#f4f1ea; --water:#d9e3e6; --ink:#1c1b19; --soft:#6f6a60; --blue:#2740a8; --grey:#b9b3a6;
+  --pos:#1f7a4d; --neg:#c0392b; --rival:#7a4fa3;
+  --num:Archivo,"Segoe UI",sans-serif; --txt:Newsreader,Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#e4dfd4;color:var(--ink);font:400 16px/1.4 var(--txt);
+  display:flex;align-items:center;justify-content:center;gap:48px;padding:24px}
+.notes{max-width:330px}
+.notes h1{font:500 30px/1.1 var(--txt);margin:0 0 4px}
+.notes .sub{font:600 11px var(--num);letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:0 0 16px}
+.notes p{margin:0 0 12px}
+.notes p b{font:700 14px var(--num)}
+.notes small{color:var(--soft);font-style:italic}
+
+.phone{position:relative;width:400px;height:min(850px,calc(100vh - 48px));flex:none;overflow:hidden;
+  background:var(--land);border:9px solid var(--ink);border-radius:32px}
+#map{position:absolute;inset:0;background:var(--land)}
+.maplibregl-ctrl-bottom-right{bottom:84px}
+.maplibregl-ctrl-attrib{font:9px var(--num);background:transparent!important;color:var(--soft)}
+.maplibregl-ctrl-attrib a{color:var(--soft)}
+
+/* --- stan linii: tekst na mapie, bez ramki --- */
+.halo{text-shadow:0 0 3px var(--land),0 0 3px var(--land),0 0 5px var(--land),0 0 8px var(--land),0 0 12px var(--land)}
+.me{position:absolute;left:14px;top:12px;z-index:5;pointer-events:none}
+.me .n{font:500 italic 15px var(--txt)}
+.me .c{font:800 30px/1.05 var(--num);letter-spacing:-.02em}
+.me .w{font:600 13px var(--num)}
+.me .f{font:400 13px var(--txt);color:var(--soft);margin-top:2px}
+.me .f u{text-decoration-thickness:1px;text-underline-offset:3px;pointer-events:auto;cursor:pointer}
+.clock{position:absolute;right:14px;top:14px;z-index:5;text-align:right;font:500 italic 14px var(--txt)}
+.clock div{font:700 12px var(--num);font-style:normal;margin-top:3px;display:flex;gap:10px;justify-content:flex-end}
+.clock button{all:unset;cursor:pointer;color:var(--soft);padding:2px 0}
+.clock button.on{color:var(--ink);box-shadow:0 2px 0 var(--ink)}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+
+/* --- lotniska: koło popytu, punkt, podpis --- */
+.ap{width:0;height:0;position:relative;cursor:pointer}
+.ap .bub{position:absolute;left:0;top:0;transform:translate(-50%,-50%);border-radius:50%;opacity:.8;border:1px solid var(--land);display:none}
+.ap.served .bub{outline:2px solid var(--ink);outline-offset:1px}
+.ap .dot{position:absolute;left:0;top:0;width:7px;height:7px;transform:translate(-50%,-50%);border-radius:50%;background:var(--land);border:1.5px solid var(--ink)}
+.ap.served .dot{background:var(--ink)}
+.ap.base .dot{width:13px;height:13px;background:var(--ink);border:3px solid var(--land);box-shadow:0 0 0 1.5px var(--ink)}
+.ap .lbl{position:absolute;left:0;transform:translateX(-50%);white-space:nowrap;font:700 10.5px/1.15 var(--num);text-align:center;
+  text-shadow:0 0 2px var(--land),0 0 2px var(--land),0 0 3px var(--land),0 0 4px var(--land)}
+.ap .lbl em{display:block;font-style:normal;font-weight:600;color:var(--blue)}
+.ap .lbl em.pos{color:var(--pos)} .ap .lbl em.neg{color:var(--neg)} .ap .lbl em:empty{display:none}
+.ap.base .lbl{font-size:12px;font-weight:800}
+.phone[data-lens=popyt] .ap .bub{display:block}
+.phone[data-lens=popyt] .ap:not(.base) .dot{display:none}
+.phone:not([data-lens=popyt]) .ap:not(.served):not(.base) .lbl{color:var(--soft);font-weight:500}
+.plane{width:16px;height:16px;pointer-events:none}
+.plane svg{width:16px;height:16px;display:block}
+
+/* --- odpowiedź gry: dymek przy lotnisku --- */
+.maplibregl-popup{z-index:6}
+.maplibregl-popup-content{background:#fffdf8;border:1.5px solid var(--ink);border-radius:3px;padding:11px 14px 11px;box-shadow:4px 4px 0 #1c1b1922;font:400 15px/1.34 var(--txt);color:var(--ink)}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip{border-top-color:var(--ink)}
+.say h3{font:500 23px/1.05 var(--txt);margin:0}
+.say .sm{font:600 10.5px var(--num);letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin:3px 0 9px}
+.say p{margin:0 0 7px}
+.say b{font:700 14.5px var(--num)}
+.scrub{font:800 15.5px var(--num);color:var(--blue);border-bottom:2px dotted var(--blue);cursor:ew-resize;touch-action:none;user-select:none;-webkit-user-select:none;padding:0 1px}
+.say .hint{font:italic 12.5px var(--txt);color:var(--soft);margin:-2px 0 8px}
+.say .go{all:unset;cursor:pointer;display:block;font:700 14px var(--num);border:1.5px solid var(--ink);background:var(--ink);color:#fffdf8;padding:9px 12px;text-align:center;margin-top:4px;width:calc(100% - 27px)}
+.say .alt{all:unset;cursor:pointer;font:italic 13px var(--txt);color:var(--soft);text-decoration:underline;text-underline-offset:3px}
+.say ul{list-style:none;margin:6px 0 8px;padding:0;border-top:1px solid var(--ink)}
+.say li{display:flex;justify-content:space-between;padding:5px 0 4px;border-bottom:1px solid #ddd6c8;cursor:pointer}
+.say li span:last-child{font:700 14px var(--num)}
+
+/* --- dół: co mapa teraz pokazuje --- */
+.lens{position:absolute;left:0;right:0;bottom:0;z-index:7;background:#fffdf8;border-top:1.5px solid var(--ink);padding:8px 14px 10px}
+.lens p{margin:0 0 7px;font:italic 13.5px/1.25 var(--txt);color:var(--soft);min-height:34px}
+.lens p i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:3px}
+.lens nav{display:flex;gap:18px}
+.lens button{all:unset;cursor:pointer;font:700 14px/1 var(--num);color:var(--soft);padding:5px 0 6px}
+.lens button.on{color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+
+@media (max-width:820px){
+  body{padding:0;display:block}
+  .notes{display:none}
+  .phone{width:100%;height:100dvh;border:0;border-radius:0}
+}
+</style>
+</head>
+<body>
+
+<aside class="notes">
+  <h1>Mapa, która odpowiada</h1>
+  <div class="sub">Airline · mockup · wersja 4</div>
+  <p><b>Pomysł.</b> W tej grze o wszystkim decyduje geografia, więc interfejsem jest sama mapa. Nie ma paneli, kafelków ani tabel.</p>
+  <p><b>Mapa jest wykresem.</b> Koło przy lotnisku to ludzie, którzy chcą tam podróżować z Twojej bazy. Szara część jedzie lądem, niebieska poleci. Kraków jest wielki i prawie cały szary.</p>
+  <p><b>Gra mówi zdaniami.</b> Dotknij lotniska, a odpowiedź pojawi się przy nim, po ludzku: ilu chętnych, kto wygrywa, ile zarobisz.</p>
+  <p><b>Liczby się przeciąga.</b> Cenę biletu i liczbę lotów zmieniasz, ciągnąc podkreśloną liczbę w zdaniu. Reszta zdania i mapa zmieniają się od razu.</p>
+  <p><b>Trzy pytania zamiast zakładek.</b> Dokąd latać, jak mi idzie, co robi rywal: ta sama mapa, inne dane.</p>
+  <small>Liczby poglądowe. Nazwa linii zmyślona.</small>
+</aside>
+
+<div class="phone" data-lens="popyt">
+  <div id="map"></div>
+
+  <div class="me halo">
+    <div class="n">Silesia Air</div>
+    <div class="c">4,82 mln zł</div>
+    <div class="w" id="weekly"></div>
+    <div class="f"><u>4 samoloty</u>, wszystkie latają · <u>finanse</u></div>
+  </div>
+  <div class="clock halo"><span id="date"></span>
+    <div id="speed"><button data-s="0">stop</button><button data-s="1" class="on">1×</button><button data-s="4">4×</button></div></div>
+
+  <div class="lens">
+    <p id="cap"></p>
+    <nav id="lens"><button data-l="popyt" class="on">Dokąd latać</button><button data-l="wyniki">Jak mi idzie</button><button data-l="rywale">Rywale</button></nav>
+  </div>
+</div>
+
+<script>
+// ---------- dane poglądowe ----------
+// [kod, nazwa, lon, lat, zlewnia mln, udział transportu lądowego z KTW, mnożnik turystyczny, czym się jedzie]
+const AP = [
+ ['KTW','Katowice',19.080,50.474,4.6,0,1],['WAW','Warszawa',20.967,52.166,3.4,.8,1,'pociąg (2 h 20)'],
+ ['KRK','Kraków',19.785,50.078,2.6,.995,1,'samochód (godzina drogi)'],['GDN','Gdańsk',18.466,54.378,1.6,.25,1,'pociąg'],
+ ['WRO','Wrocław',16.886,51.103,1.9,.65,1,'samochód lub pociąg'],['POZ','Poznań',16.826,52.421,1.7,.5,1,'pociąg lub samochód'],
+ ['RZE','Rzeszów',22.019,50.110,1.1,.6,1,'samochód'],['RDO','Radom',21.213,51.389,0.4,.8,1,'samochód'],
+ ['LTN','Londyn',-0.368,51.875,12,0,1],['CDG','Paryż',2.55,49.01,12,0,1],
+ ['FRA','Frankfurt',8.570,50.033,6.5,0,1],['MUC','Monachium',11.786,48.354,4.5,.1,1,'samochód'],
+ ['BER','Berlin',13.503,52.362,5,.3,1,'pociąg lub samochód'],['DTM','Dortmund',7.612,51.518,9,0,1],
+ ['BGY','Bergamo',9.704,45.674,8,0,1],['FCO','Rzym',12.239,41.800,4.5,0,1.3],
+ ['BCN','Barcelona',2.078,41.297,5,0,1.5],['ATH','Ateny',23.944,37.936,3.8,0,1.4],
+ ['OSL','Oslo',11.100,60.194,1.8,0,1.6],['ARN','Sztokholm',17.919,59.652,2.4,0,1],
+ ['CPH','Kopenhaga',12.656,55.618,3,0,1],['AMS','Amsterdam',4.764,52.309,8,0,1],
+ ['VIE','Wiedeń',16.570,48.110,3.5,.4,1,'samochód lub pociąg'],['PRG','Praga',14.260,50.101,2.6,.45,1,'samochód'],
+ ['BUD','Budapeszt',19.256,47.437,3,.35,1,'samochód'],['SPU','Split',16.298,43.539,0.5,0,3],
+ ['BOJ','Burgas',27.515,42.570,0.4,0,3],['IST','Stambuł',28.751,41.275,15,0,1],
+ ['MAD','Madryt',-3.567,40.472,6.5,0,1]
+].map(a=>({code:a[0],name:a[1],ll:[a[2],a[3]],catch:a[4],land:a[5],tour:a[6],by:a[7]}));
+const byCode = Object.fromEntries(AP.map(a=>[a.code,a]));
+const BASE = byCode.KTW, SEATS = 70;
+const RAIL = [[19.02,50.26],[19.45,50.62],[19.92,51.2],[20.32,51.76],[21.0,52.23]];
+const RIVAL = [['WAW','CDG'],['WAW','FRA'],['WAW','ARN'],['KRK','LTN']];
+let routes = [{to:'WAW',rot:3,pm:1},{to:'DTM',rot:2,pm:1},{to:'LTN',rot:1,pm:1},{to:'BGY',rot:1,pm:1},{to:'SPU',rot:1,pm:1}];
+const routeTo=c=>routes.find(r=>r.to===c);
+
+// ---------- model ----------
+const R=6371, rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI;
+function dist(a,b){const dφ=rad(b[1]-a[1]),dλ=rad(b[0]-a[0]);
+  const h=Math.sin(dφ/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dλ/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function arc(a,b,n=64){const φ1=rad(a[1]),λ1=rad(a[0]),φ2=rad(b[1]),λ2=rad(b[0]);
+  const d=dist(a,b)/R,out=[];for(let i=0;i<=n;i++){const f=i/n,A=Math.sin((1-f)*d)/Math.sin(d),B=Math.sin(f*d)/Math.sin(d);
+  const x=A*Math.cos(φ1)*Math.cos(λ1)+B*Math.cos(φ2)*Math.cos(λ2),y=A*Math.cos(φ1)*Math.sin(λ1)+B*Math.cos(φ2)*Math.sin(λ2),z=A*Math.sin(φ1)+B*Math.sin(φ2);
+  out.push([deg(Math.atan2(y,x)),deg(Math.atan2(z,Math.sqrt(x*x+y*y)))]);}return out;}
+function calc(to,rot,pm){const a=byCode[to],d=dist(BASE.ll,a.ll);
+  const natural=20500*BASE.catch*a.catch*a.tour/Math.pow(d,1.2);
+  const air=natural*(1-a.land), p0=120+d*0.16, price=p0*pm;
+  const want=air*Math.pow(pm,-1.6), cap=SEATS*rot, pax=Math.min(cap,want);
+  const rev=2*pax*price*7, cost=(4000+12*d)*rot*2*7;
+  return {a,d,natural,air,p0,price,want,cap,pax,lf:pax/cap,profit:rev-cost,unmet:Math.max(0,want-cap)};}
+const tys=n=>Math.round(Math.abs(n)/1000)+' tys. zł';
+const sgn=n=>(n<0?'−':'+')+Math.round(Math.abs(n)/1000)+' tys.';
+const pn=n=>n<0?'neg':'pos';
+
+// ---------- mapa ----------
+const phone=document.querySelector('.phone');
+const map = new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/positron',
+  center:[14.5,50.2],zoom:3.6,attributionControl:{compact:true},dragRotate:false,pitchWithRotate:false});
+map.touchZoomRotate.disableRotation();
+function quietStyle(){
+  const keep={background:1,water:1,boundary_2:1,label_country_1:1,label_country_2:1};
+  for(const l of map.getStyle().layers){ if(!keep[l.id]) map.setLayoutProperty(l.id,'visibility','none'); }
+  map.setPaintProperty('background','background-color','#f4f1ea');
+  map.setPaintProperty('water','fill-color','#d9e3e6');
+  map.setPaintProperty('boundary_2','line-color','#cfc8b8');
+  for(const id of ['label_country_1','label_country_2']){map.setPaintProperty(id,'text-color','#b5ad9c');map.setPaintProperty(id,'text-halo-width',0);}
+}
+function circle(c,km,n=72){const out=[];for(let i=0;i<=n;i++){const t=2*Math.PI*i/n;
+  out.push([c[0]+km/(111.32*Math.cos(rad(c[1])))*Math.cos(t),c[1]+km/110.57*Math.sin(t)]);}return out;}
+const fc=f=>({type:'FeatureCollection',features:f});
+const line=(c,p={})=>({type:'Feature',properties:p,geometry:{type:'LineString',coordinates:c}});
+const routesFC=()=>fc(routes.map(r=>{const c=calc(r.to,r.rot,r.pm);
+  return line(arc(BASE.ll,byCode[r.to].ll),{to:r.to,loss:c.profit<0?1:0,w:1.5+c.pax*2/55});}));
+
+let lens='popyt', sel=null, apMarkers={};
+const popup=new maplibregl.Popup({closeButton:false,anchor:'bottom',offset:16,maxWidth:'286px',closeOnClick:false});
+map.on('load',()=>{
+  quietStyle();
+  map.addSource('catch',{type:'geojson',data:{type:'Feature',geometry:{type:'Polygon',coordinates:[circle(BASE.ll,95)]}}});
+  map.addLayer({id:'catch-l',type:'line',source:'catch',paint:{'line-color':'#1c1b19','line-width':1,'line-dasharray':[1,3]}});
+  map.addSource('rival',{type:'geojson',data:fc(RIVAL.map(([a,b])=>line(arc(byCode[a].ll,byCode[b].ll))))});
+  map.addLayer({id:'rival',type:'line',source:'rival',layout:{'line-cap':'round'},paint:{'line-color':'#7a4fa3','line-width':1}});
+  map.addSource('preview',{type:'geojson',data:fc([])});
+  map.addLayer({id:'preview',type:'line',source:'preview',paint:{'line-color':'#2740a8','line-width':1.6,'line-dasharray':[2,2]}});
+  map.addSource('routes',{type:'geojson',data:routesFC()});
+  map.addLayer({id:'routes',type:'line',source:'routes',layout:{'line-cap':'round'},paint:{'line-color':'#2740a8','line-width':1.6}});
+  map.addLayer({id:'routes-hit',type:'line',source:'routes',paint:{'line-color':'#000','line-opacity':0,'line-width':22}});
+  map.addSource('rail',{type:'geojson',data:line(RAIL)});
+  map.addLayer({id:'rail-a',type:'line',source:'rail',layout:{visibility:'none'},paint:{'line-color':'#1c1b19','line-width':4,'line-offset':8}});
+  map.addLayer({id:'rail-b',type:'line',source:'rail',layout:{visibility:'none'},paint:{'line-color':'#f4f1ea','line-width':2,'line-offset':8,'line-dasharray':[2,2]}});
+
+  map.on('click','routes-hit',e=>{e.originalEvent.hit=1;select(e.features[0].properties.to);});
+  map.on('click',e=>{if(!e.originalEvent.hit)select(null);});
+  map.on('mouseenter','routes-hit',()=>map.getCanvas().style.cursor='pointer');
+  map.on('mouseleave','routes-hit',()=>map.getCanvas().style.cursor='');
+
+  // większe koła pod spodem
+  for(const a of [...AP].sort((x,y)=>(y.code==='KTW'?-1:calc(y.code,1,1).natural)-(x.code==='KTW'?-1:calc(x.code,1,1).natural))){
+    const el=document.createElement('div');el.className='ap';
+    el.innerHTML=`<i class="bub"></i><i class="dot"></i><span class="lbl"><span>${a.code}</span><em></em></span>`;
+    el.onclick=ev=>{ev.stopPropagation();select(a.code);};
+    apMarkers[a.code]=el;new maplibregl.Marker({element:el}).setLngLat(a.ll).addTo(map);}
+  makePlanes();mapState();select('WAW');requestAnimationFrame(tick);
+});
+
+// ---------- samoloty ----------
+let planes=[],speed=1,clock=0,last=0;
+const planeSVG=c=>`<svg viewBox="0 0 24 24"><path fill="${c}" stroke="#f4f1ea" stroke-width="1.2" d="M12 1.5c.9 0 1.5 1 1.5 2.5v5l8 4.5v2l-8-2.3v5l2.3 1.7V22L12 21l-3.8 1v-2.1l2.3-1.7v-5l-8 2.3v-2l8-4.5V4c0-1.5.6-2.5 1.5-2.5z"/></svg>`;
+function makePlanes(){planes.forEach(p=>p.m.remove());planes=[];
+  const add=(a,b,color,phase)=>{const el=document.createElement('div');el.className='plane';el.innerHTML=planeSVG(color);
+    planes.push({pts:arc(a,b,120),km:dist(a,b),phase,el,m:new maplibregl.Marker({element:el}).setLngLat(a).addTo(map)});};
+  routes.forEach((r,i)=>add(BASE.ll,byCode[r.to].ll,'#1c1b19',i*0.23));
+  RIVAL.forEach(([a,b],i)=>add(byCode[a].ll,byCode[b].ll,'#7a4fa3',i*0.31+.1));}
+function tick(t){const dt=Math.min(100,t-last);last=t;clock+=dt*speed;
+  for(const p of planes){const period=p.km*14+6000;let u=((clock/period)+p.phase)%2;const back=u>1;u=back?2-u:u;
+    const f=Math.min(1,Math.max(0,(u-0.06)/0.88))*(p.pts.length-1),i=Math.min(p.pts.length-2,Math.floor(f)),k=f-i;
+    const A=p.pts[i],B=p.pts[i+1];p.m.setLngLat([A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k]);
+    const a=map.project(A),b=map.project(B);let ang=deg(Math.atan2(b.x-a.x,-(b.y-a.y)));if(back)ang+=180;
+    p.el.firstChild.style.transform=`rotate(${ang}deg)`;}
+  const m=Math.floor(clock/50)%1440+480,pad=n=>String(n).padStart(2,'0');
+  document.getElementById('date').textContent=`wtorek 16 lutego, ${pad(Math.floor(m/60)%24)}:${pad(m%60)}`;
+  requestAnimationFrame(tick);}
+document.getElementById('speed').onclick=e=>{const b=e.target.closest('button');if(!b)return;speed=+b.dataset.s;
+  document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));};
+
+// ---------- stan mapy zależnie od pytania ----------
+const CAP={
+  popyt:`<i style="background:#2740a8"></i>poleci samolotem &nbsp;<i style="background:#b9b3a6"></i>pojedzie lądem. Wielkość koła: ilu ludzi dziennie chce podróżować z Katowic.`,
+  wyniki:`Grubość trasy to liczba pasażerów. Zielona zarabia, czerwona traci. Kwoty za ostatni tydzień.`,
+  rywale:`Fioletowe trasy lata rywal z Warszawy i Krakowa. Na żadną z Twoich jeszcze nie wszedł.`};
+function mapState(){
+  const w=routes.reduce((s,r)=>s+calc(r.to,r.rot,r.pm).profit,0),wk=document.getElementById('weekly');
+  wk.innerHTML=`w tym tygodniu <span class="${pn(w)}">${sgn(w)} zł</span>`;
+  phone.dataset.lens=lens;document.getElementById('cap').innerHTML=CAP[lens];
+  if(!map.getSource('routes'))return;
+  map.getSource('routes').setData(routesFC());
+  const P=(l,k,v)=>map.setPaintProperty(l,k,v);
+  if(lens==='wyniki'){P('routes','line-color',['case',['==',['get','loss'],1],'#c0392b','#1f7a4d']);P('routes','line-width',['get','w']);}
+  else{P('routes','line-color',lens==='rywale'?'#b9b3a6':'#2740a8');P('routes','line-width',1.6);}
+  P('rival','line-width',lens==='rywale'?2.6:1);P('rival','line-opacity',lens==='rywale'?1:lens==='wyniki'?.35:0);
+  map.setLayoutProperty('catch-l','visibility',lens==='popyt'?'visible':'none');
+  for(const l of ['rail-a','rail-b'])map.setLayoutProperty(l,'visibility',sel==='WAW'&&lens!=='rywale'?'visible':'none');
+  map.getSource('preview').setData(fc(sel&&sel!=='KTW'&&!routeTo(sel)?[line(arc(BASE.ll,byCode[sel].ll))]:[]));
+  for(const a of AP){const el=apMarkers[a.code];if(!el)continue;const r=routeTo(a.code),base=a.code==='KTW';
+    el.className='ap'+(base?' base':r?' served':'');
+    const bub=el.children[0],lbl=el.children[2],em=lbl.children[1];let off=7;em.className='';em.textContent='';
+    if(!base){const c=calc(a.code,r?r.rot:1,r?r.pm:1),rad=Math.max(4,Math.sqrt(c.natural)*0.82);
+      bub.style.cssText=`width:${rad*2}px;height:${rad*2}px;background:conic-gradient(#b9b3a6 0 ${a.land*100}%,#2740a8 0)`;
+      if(lens==='popyt'){off=rad+2;em.textContent=Math.round(c.air);}
+      else if(lens==='wyniki'&&r){em.textContent=sgn(c.profit);em.className=pn(c.profit);}
+    } else off=10;
+    lbl.style.top=off+'px';}
+}
+document.getElementById('lens').onclick=e=>{const b=e.target.closest('button');if(!b)return;lens=b.dataset.l;
+  document.querySelectorAll('#lens button').forEach(x=>x.classList.toggle('on',x===b));mapState();};
+
+// ---------- odpowiedzi gry ----------
+const razy=n=>n===1?'raz':'razy';
+function landSentence(a,c){
+  if(!a.land) return `<p><b>${Math.round(c.natural)}</b> osób dziennie chce tu podróżować z Katowic. Lądem nikt nie jedzie, za daleko.</p>`;
+  return `<p>Z <b>${Math.round(c.natural)}</b> osób dziennie ${a.land>=.5?'aż ':''}<b>${Math.round(c.natural*a.land)}</b> wybiera ${a.by}. Samolotem chce lecieć <b>${Math.round(c.air)}</b>.</p>`;}
+function outcome(r){const c=calc(r.to,r.rot,r.pm);
+  const fillTxt=c.lf>.995?(c.unmet>5?`Samoloty są pełne, a <b>${Math.round(c.unmet)}</b> chętnych dziennie zostaje na ziemi.`:`Samoloty są pełne.`)
+    :`Samoloty są pełne w <b>${Math.round(c.lf*100)}%</b>: ${Math.round(c.pax*2)} pasażerów dziennie na ${c.cap*2} miejsc.`;
+  return fillTxt+(c.profit<0?` Co tydzień <b class="neg">tracisz ${tys(c.profit)}</b>.`:` Co tydzień <b class="pos">zarabiasz ${tys(c.profit)}</b>.`);}
+function say(code){
+  const el=document.createElement('div');el.className='say';
+  if(code==='KTW'){
+    const w=routes.reduce((s,r)=>s+calc(r.to,r.rot,r.pm).profit,0);
+    el.innerHTML=`<h3>Katowice</h3><div class="sm">KTW · twoja baza</div>
+      <p>W 90 minut dojedzie tu <b>4,6 mln</b> ludzi. Latasz stąd w ${routes.length} miejsc.</p>
+      <ul>${routes.map(r=>{const c=calc(r.to,r.rot,r.pm);return `<li data-to="${r.to}"><span>${byCode[r.to].name}, ${r.rot} ${razy(r.rot)} dziennie</span><span class="${pn(c.profit)}">${sgn(c.profit)}</span></li>`;}).join('')}</ul>
+      <p style="margin:0">Razem <b class="${pn(w)}">${sgn(w)} zł</b> tygodniowo.</p>`;
+    el.querySelectorAll('li').forEach(li=>li.onclick=()=>select(li.dataset.to));return el;}
+  const a=byCode[code],r=routeTo(code),c=calc(code,r?r.rot:1,r?r.pm:1);
+  let h=`<h3>${a.name}</h3><div class="sm">${a.code} · ${Math.round(c.d)} km · zlewnia ${a.catch.toLocaleString('pl-PL')} mln</div>`+landSentence(a,c);
+  if(a.tour>1.4) h+=`<p>To kierunek wakacyjny. Teraz jest zima, w lipcu chętnych będzie cztery razy więcej.</p>`;
+  if(r){
+    h+=`<p>Bilet kosztuje <span class="scrub" data-f="pm"></span>, latasz <span class="scrub" data-f="rot"></span> dziennie.</p>
+      <p data-k="out"></p><div class="hint">Przeciągnij niebieską liczbę w lewo albo w prawo.</div><button class="alt" id="close">Zamknij tę trasę</button>`;
+  } else {
+    h+=`<p>Jeden lot dziennie w obie strony ${c.profit<0?`przyniósłby <b class="neg">stratę około ${tys(c.profit)}</b>`:`dałby około <b class="pos">${tys(c.profit)}</b>`} tygodniowo.</p>
+      <button class="go" id="open">Otwórz trasę</button>`;
+  }
+  el.innerHTML=h;
+  if(r){
+    const upd=()=>{const cc=calc(r.to,r.rot,r.pm);el.querySelector('[data-f=pm]').textContent=Math.round(cc.price)+' zł';
+      el.querySelector('[data-f=rot]').textContent=r.rot+' '+razy(r.rot);el.querySelector('[data-k=out]').innerHTML=outcome(r);mapState();};
+    upd();
+    el.querySelectorAll('.scrub').forEach(s=>{let x0,v0,on=false;
+      s.addEventListener('pointerdown',e=>{on=true;x0=e.clientX;v0=r[s.dataset.f];try{s.setPointerCapture(e.pointerId);}catch(_){ }e.preventDefault();});
+      s.addEventListener('pointermove',e=>{if(!on)return;const dx=e.clientX-x0;
+        if(s.dataset.f==='pm')r.pm=Math.min(2,Math.max(.5,v0+dx*0.004));else r.rot=Math.min(6,Math.max(1,v0+Math.round(dx/26)));upd();});
+      const end=()=>{on=false;};s.addEventListener('pointerup',end);s.addEventListener('pointercancel',end);});
+    el.querySelector('#close').onclick=()=>{routes=routes.filter(x=>x!==r);makePlanes();select(code);};
+  } else el.querySelector('#open').onclick=()=>{routes.push({to:code,rot:1,pm:1});makePlanes();select(code);};
+  return el;}
+function select(code){
+  sel=code;mapState();
+  if(!code){popup.remove();return;}
+  popup.setLngLat(byCode[code].ll).setDOMContent(say(code)).addTo(map);
+  map.easeTo({center:byCode[code].ll,offset:[0,125],duration:450});}
+mapState();
+</script>
+</body>
+</html>
