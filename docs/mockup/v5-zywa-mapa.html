@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Airline — mockup v5 (żywa mapa)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script>/* w ukrytej karcie przeglądarka wstrzymuje animację; mockup ma działać mimo to */
+if(document.hidden){window.requestAnimationFrame=cb=>setTimeout(()=>cb(performance.now()),33);}</script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+:root{--f:"Bricolage Grotesque","Segoe UI",sans-serif;--brand:#d6442a;--paper:#fbf8f1;--ink:#1b1a17;--soft:#6a655c;--rule:#d9d2c2;--pos:#17703f;--neg:#b92d1f;--blue:#2247b3}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{font:400 15px/1.4 var(--f);color:var(--ink);background:#a9c9d6}
+#map{position:absolute;inset:0}
+button{font-family:var(--f);color:inherit}
+.card{background:var(--paper);border:1.5px solid var(--ink);border-radius:5px;box-shadow:0 6px 0 #1b1a1722}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.maplibregl-ctrl-attrib{font:10px "Bricolage Grotesque",sans-serif;background:#fbf8f1cc!important}
+
+/* --- linia gracza --- */
+.id{position:absolute;left:16px;top:16px;z-index:5;display:flex;gap:12px;align-items:center;padding:10px 16px 10px 12px}
+.id svg{width:46px;height:46px;flex:none}
+.id .nm{font:700 14px/1 var(--f);letter-spacing:.02em}
+.id .cash{font:800 28px/1.05 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.id .wk{font:600 13px/1.2 var(--f);color:var(--soft)}
+/* --- zegar --- */
+.clock{position:absolute;left:16px;top:104px;z-index:5;display:flex;gap:10px;align-items:center;padding:7px 8px 7px 10px}
+.clock svg{width:38px;height:38px;flex:none}
+.clock .t{font:800 21px/1 var(--f);font-variant-numeric:tabular-nums}
+.clock .d{font:500 12px/1.2 var(--f);color:var(--soft)}
+.speed{display:flex;gap:3px;margin-left:6px}
+.speed button{all:unset;cursor:pointer;width:34px;height:34px;text-align:center;font:700 13px/34px var(--f);border:1.5px solid var(--rule);border-radius:4px}
+.speed button.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+/* --- narzędzia --- */
+.tools{position:absolute;left:16px;bottom:16px;z-index:5;display:flex;gap:8px}
+.tools button{all:unset;cursor:pointer;background:var(--paper);border:1.5px solid var(--ink);border-radius:5px;box-shadow:0 6px 0 #1b1a1722;padding:11px 16px;font:700 15px/1 var(--f)}
+.tools button.on{background:var(--ink);color:var(--paper)}
+.tools small{font:600 13px var(--f);color:var(--soft);margin-left:6px}
+.tools button.on small{color:#c9c3b6}
+
+/* --- lotniska --- */
+.ap{width:0;height:0;position:relative;cursor:pointer}
+.ap .ring{position:absolute;left:0;top:0;transform:translate(-50%,-50%);border-radius:50%;background:#8a847838;border:1px solid #8a8478;display:none}
+.ap .core{position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--paper);border:1.5px solid var(--ink)}
+.ap.served .core{width:12px;height:12px;background:var(--brand);border:2px solid var(--paper);box-shadow:0 0 0 1.5px var(--ink)}
+.ap.base .core{width:18px;height:18px;background:var(--ink);border:4px solid var(--paper);box-shadow:0 0 0 2px var(--ink)}
+.ap.sel .core{box-shadow:0 0 0 3px var(--paper),0 0 0 6px var(--ink)}
+.ap .lbl{position:absolute;left:0;transform:translateX(-50%);white-space:nowrap;background:var(--paper);border:1px solid var(--ink);border-radius:3px;
+  font:700 12px/1 var(--f);padding:3px 5px;display:flex;gap:5px;font-variant-numeric:tabular-nums}
+.ap .lbl em{font-style:normal;color:var(--blue)} .ap .lbl em.pos{color:var(--pos)} .ap .lbl em.neg{color:var(--neg)} .ap .lbl em:empty{display:none}
+.ap.base .lbl{background:var(--ink);color:var(--paper);font-size:13px}
+body.demand .ap:not(.base) .ring{display:block}
+body.demand .ap:not(.base) .core{background:var(--blue);border:1.5px solid var(--paper);box-shadow:none}
+body.demand .ap.served .core{box-shadow:0 0 0 2px var(--ink)}
+/* --- lądowanie: krąg i kwota --- */
+.fx{width:0;height:0;position:relative;pointer-events:none}
+.fx i{position:absolute;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2.5px solid var(--brand);animation:ring 1.3s ease-out forwards}
+.fx.big i{border-width:4px;animation-duration:2.2s}
+.fx b{position:absolute;left:0;bottom:8px;transform:translateX(-50%);white-space:nowrap;font:800 14px/1 "Bricolage Grotesque",sans-serif;color:var(--pos);
+  text-shadow:0 0 3px #fbf8f1,0 0 3px #fbf8f1,0 0 6px #fbf8f1;animation:rise 1.9s ease-out forwards}
+@keyframes ring{from{transform:scale(1);opacity:1}to{transform:scale(5.5);opacity:0}}
+@keyframes rise{from{transform:translate(-50%,0);opacity:0}15%{opacity:1}to{transform:translate(-50%,-38px);opacity:0}}
+
+/* --- karta wyboru --- */
+.panel{position:absolute;right:16px;top:16px;width:360px;max-height:calc(100% - 32px);overflow:auto;z-index:6;padding:0 0 14px;display:none}
+.panel.open{display:block;animation:in .22s ease-out}
+@keyframes in{from{transform:translateX(18px);opacity:0}to{transform:none;opacity:1}}
+.panel .hd{padding:14px 44px 10px 16px;border-bottom:1.5px solid var(--ink)}
+.panel h2{font:800 25px/1.05 var(--f);letter-spacing:-.02em;margin:0}
+.panel .sub{font:500 13px/1.3 var(--f);color:var(--soft);margin-top:4px}
+.panel .x{all:unset;cursor:pointer;position:absolute;right:8px;top:8px;width:34px;height:34px;text-align:center;font:500 24px/34px var(--f);color:var(--soft)}
+.panel .bd{padding:12px 16px 0}
+.ac{display:flex;align-items:center;gap:10px;border:1px solid var(--rule);border-radius:4px;padding:6px 10px;margin-bottom:10px;background:#fff}
+.ac svg{width:150px;height:44px;flex:none}
+.ac .n{font:700 14px/1.2 var(--f)} .ac .s{font:500 12.5px/1.3 var(--f);color:var(--soft)}
+.live{font:600 13.5px/1.3 var(--f);margin:0 0 12px;display:flex;gap:8px;align-items:baseline}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none;animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);margin:0 0 12px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.nums div{padding:9px 0 8px}
+.nums b{display:block;font:800 24px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.nums span{font:500 12px/1.2 var(--f);color:var(--soft)}
+.panel p{margin:0 0 10px}
+.panel p b{font-weight:700}
+.step{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.step label{font:600 14px var(--f);flex:1}
+.step button{all:unset;cursor:pointer;width:38px;height:38px;text-align:center;font:700 20px/38px var(--f);border:1.5px solid var(--ink);border-radius:4px}
+.step button:active{background:var(--ink);color:var(--paper)}
+.step output{font:800 19px var(--f);min-width:74px;text-align:center;font-variant-numeric:tabular-nums}
+.go{all:unset;cursor:pointer;display:block;box-sizing:border-box;width:100%;text-align:center;background:var(--brand);color:#fff;font:700 16px/1 var(--f);padding:14px 12px;border-radius:4px;border:1.5px solid var(--ink);margin-top:4px}
+.go.sec{background:var(--paper);color:var(--ink)}
+.alt{all:unset;cursor:pointer;font:500 13px var(--f);color:var(--soft);text-decoration:underline;text-underline-offset:3px;margin-top:6px;display:inline-block}
+.list{margin:0 0 10px;border-top:1px solid var(--ink)}
+.list div{display:flex;justify-content:space-between;gap:8px;padding:8px 0 7px;border-bottom:1px solid var(--rule);cursor:pointer}
+.list div b{font-weight:700;font-variant-numeric:tabular-nums}
+
+/* --- flota i rynek --- */
+.veil{position:absolute;inset:0;z-index:20;background:#1b1a1766;display:none;align-items:center;justify-content:center;padding:20px}
+.veil.open{display:flex}
+.fleet{width:min(940px,100%);max-height:100%;overflow:auto;position:relative}
+.fleet .top{display:flex;align-items:center;gap:16px;padding:14px 56px 12px 18px;border-bottom:1.5px solid var(--ink);flex-wrap:wrap}
+.fleet h2{font:800 25px/1 var(--f);margin:0;letter-spacing:-.02em}
+.tabs{display:flex;gap:4px}
+.tabs button{all:unset;cursor:pointer;font:700 14px/1 var(--f);padding:9px 13px;border:1.5px solid var(--rule);border-radius:4px}
+.tabs button.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.liv{margin-left:auto;display:flex;align-items:center;gap:6px;font:600 13px var(--f);color:var(--soft)}
+.liv button{all:unset;cursor:pointer;width:26px;height:26px;border-radius:50%;border:2px solid var(--paper);box-shadow:0 0 0 1.5px var(--rule)}
+.liv button.on{box-shadow:0 0 0 2px var(--ink)}
+.fleet .x{all:unset;cursor:pointer;position:absolute;right:10px;top:8px;width:40px;height:40px;text-align:center;font:500 28px/40px var(--f);color:var(--soft)}
+.rows{padding:4px 18px 16px}
+.row{display:grid;grid-template-columns:230px 1fr auto;gap:14px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule)}
+.row svg{width:230px;height:66px}
+.row .n{font:700 16px/1.2 var(--f)} .row .s{font:500 13px/1.35 var(--f);color:var(--soft)}
+.row .st{font:600 13px/1.3 var(--f);text-align:right;max-width:210px}
+.mk{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:14px 18px 18px}
+.mk .it{border:1.5px solid var(--ink);border-radius:5px;background:#fff;padding:10px 12px 12px;display:flex;flex-direction:column}
+.mk svg{width:100%;height:78px}
+.mk .mkr{font:600 12px/1 var(--f);color:var(--soft);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+.mk .n{font:800 21px/1.1 var(--f);letter-spacing:-.01em}
+.mk dl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin:8px 0 10px;font:500 13.5px/1.35 var(--f)}
+.mk dt{color:var(--soft)} .mk dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.mk .go{margin-top:auto;font-size:14.5px;padding:12px}
+.fine{font:500 12px/1.35 var(--f);color:var(--soft);padding:0 18px 14px}
+
+.toast{position:absolute;left:50%;top:16px;transform:translate(-50%,-80px);z-index:15;padding:11px 16px;font:600 15px/1.3 var(--f);max-width:min(520px,calc(100% - 32px));transition:transform .35s cubic-bezier(.2,.9,.3,1.2)}
+.toast.on{transform:translate(-50%,0)}
+
+@media (max-width:760px){
+  .id{left:8px;top:8px;padding:7px 12px 7px 8px} .id svg{width:36px;height:36px} .id .cash{font-size:22px}
+  .clock{left:8px;top:78px} .tools{left:8px;bottom:8px}
+  .panel{left:0;right:0;top:auto;bottom:0;width:auto;max-height:52%;border-radius:10px 10px 0 0;border-width:1.5px 0 0}
+  .panel.open{animation:none} body.haspanel .tools{display:none}
+  .row{grid-template-columns:1fr} .row svg{width:200px;height:58px} .row .st{text-align:left}
+  .veil{padding:0} .fleet{border-radius:0;height:100%}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="id card">
+  <svg viewBox="0 0 46 46"><path d="M6 40 L20 6 H34 L28 40 Z" fill="var(--brand)" stroke="#1b1a17" stroke-width="1.5" stroke-linejoin="round"/><circle cx="24" cy="24" r="6" fill="#fbf8f1"/></svg>
+  <div><div class="nm">Silesia Air</div><div class="cash" id="cash"></div><div class="wk" id="weekly"></div></div>
+</div>
+<div class="clock card">
+  <svg viewBox="0 0 38 38"><circle cx="19" cy="19" r="16" fill="none" stroke="#d9d2c2" stroke-width="2"/><path d="M3 19h32" stroke="#d9d2c2" stroke-width="1.5"/>
+    <g id="orb"><circle id="orbdot" cx="19" cy="3" r="5" fill="#f2b21d" stroke="#1b1a17" stroke-width="1.5"/></g></svg>
+  <div><div class="t" id="time"></div><div class="d" id="date"></div></div>
+  <div class="speed" id="speed"><button data-s="0">II</button><button data-s="1" class="on">1×</button><button data-s="4">4×</button></div>
+</div>
+<div class="tools">
+  <button class="card" id="bDemand">Popyt</button>
+  <button class="card" id="bFleet">Flota<small id="fleetN"></small></button>
+</div>
+<div class="panel card" id="panel"></div>
+<div class="toast card" id="toast"></div>
+<div class="veil" id="veil"><div class="fleet card" id="fleet"></div></div>
+
+<script>
+// ================= DANE POGLĄDOWE =================
+// [kod, nazwa, lon, lat, zlewnia mln, udział lądu z KTW, mnożnik turystyczny, czym się jedzie, dopełniacz]
+const AP=[
+ ['KTW','Katowice',19.080,50.474,4.6,0,1,'','Katowic'],['WAW','Warszawa',20.967,52.166,3.4,.8,1,'pociąg (2 h 20)','Warszawy'],
+ ['KRK','Kraków',19.785,50.078,2.6,.995,1,'samochód (godzina drogi)','Krakowa'],['GDN','Gdańsk',18.466,54.378,1.6,.25,1,'pociąg','Gdańska'],
+ ['WRO','Wrocław',16.886,51.103,1.9,.65,1,'samochód lub pociąg','Wrocławia'],['POZ','Poznań',16.826,52.421,1.7,.5,1,'pociąg lub samochód','Poznania'],
+ ['RZE','Rzeszów',22.019,50.110,1.1,.6,1,'samochód','Rzeszowa'],['LTN','Londyn',-0.368,51.875,12,0,1,'','Londynu'],
+ ['CDG','Paryż',2.55,49.01,12,0,1,'','Paryża'],['FRA','Frankfurt',8.570,50.033,6.5,0,1,'','Frankfurtu'],
+ ['MUC','Monachium',11.786,48.354,4.5,.1,1,'samochód','Monachium'],['BER','Berlin',13.503,52.362,5,.3,1,'pociąg lub samochód','Berlina'],
+ ['DTM','Dortmund',7.612,51.518,9,0,1,'','Dortmundu'],['BGY','Bergamo',9.704,45.674,8,0,1,'','Bergamo'],
+ ['FCO','Rzym',12.239,41.800,4.5,0,1.3,'','Rzymu'],['BCN','Barcelona',2.078,41.297,5,0,1.5,'','Barcelony'],
+ ['ATH','Ateny',23.944,37.936,3.8,0,1.4,'','Aten'],['OSL','Oslo',11.100,60.194,1.8,0,1.6,'','Oslo'],
+ ['ARN','Sztokholm',17.919,59.652,2.4,0,1,'','Sztokholmu'],['CPH','Kopenhaga',12.656,55.618,3,0,1,'','Kopenhagi'],
+ ['AMS','Amsterdam',4.764,52.309,8,0,1,'','Amsterdamu'],['VIE','Wiedeń',16.570,48.110,3.5,.4,1,'samochód lub pociąg','Wiednia'],
+ ['PRG','Praga',14.260,50.101,2.6,.45,1,'samochód','Pragi'],['BUD','Budapeszt',19.256,47.437,3,.35,1,'samochód','Budapesztu'],
+ ['SPU','Split',16.298,43.539,0.5,0,3,'','Splitu'],['BOJ','Burgas',27.515,42.570,0.4,0,3,'','Burgas'],
+ ['IST','Stambuł',28.751,41.275,15,0,1,'','Stambułu'],['MAD','Madryt',-3.567,40.472,6.5,0,1,'','Madrytu'],
+ ['LIS','Lizbona',-9.136,38.774,3,0,1.5,'','Lizbony'],['DUB','Dublin',-6.270,53.421,2,0,1,'','Dublina']
+].map(a=>({code:a[0],name:a[1],ll:[a[2],a[3]],catch:a[4],land:a[5],tour:a[6],by:a[7],gen:a[8]}));
+const by=Object.fromEntries(AP.map(a=>[a.code,a])), BASE=by.KTW;
+// Parametry samolotów przybliżone, z pamięci; w grze będą z jawnych źródeł.
+const TYPES={
+ AT76:{maker:'ATR',name:'72-600',seats:72,range:1400,speed:510,rwy:1300,lease:72,list:26,from:'TLS',len:27.2,kind:'tp',fix:4000,km:12},
+ DH8D:{maker:'De Havilland Canada',name:'Dash 8-400',seats:78,range:2000,speed:667,rwy:1400,lease:78,list:33,from:'W',len:32.8,kind:'tp',fix:4300,km:13},
+ E295:{maker:'Embraer',name:'E195-E2',seats:132,range:4800,speed:830,rwy:1900,lease:230,list:69,from:'W',len:41.5,kind:'jet',fix:7000,km:20},
+ BCS3:{maker:'Airbus',name:'A220-300',seats:145,range:6300,speed:830,rwy:1900,lease:265,list:91,from:'W',len:38.7,kind:'jet',fix:7500,km:21},
+ A20N:{maker:'Airbus',name:'A320neo',seats:180,range:6300,speed:830,rwy:2000,lease:335,list:110,from:'TLS',len:37.6,kind:'jet',fix:9000,km:25},
+ B38M:{maker:'Boeing',name:'737 MAX 8',seats:178,range:6500,speed:840,rwy:2300,lease:325,list:121,from:'W',len:39.5,kind:'jet',fix:9000,km:25}};
+const ORIGIN={TLS:{name:'z Tuluzy',ll:[1.36,43.63]},W:{name:'zza Atlantyku',ll:[-13.5,51.5]}};
+const LIVS=[['Cynober','#d6442a'],['Zieleń','#1d6b52'],['Kobalt','#2247b3'],['Grafit','#34343a']];
+const RAIL=[[19.02,50.26],[19.45,50.62],[19.92,51.2],[20.32,51.76],[21.0,52.23]];
+const RIVAL=[['WAW','CDG'],['WAW','FRA'],['WAW','ARN'],['KRK','LTN'],['WAW','IST'],['WAW','MAD']];
+
+let fleet=[{reg:'SP-SAA',type:'AT76',to:'WAW'},{reg:'SP-SAB',type:'AT76',to:'BGY'},{reg:'SP-SAC',type:'AT76',to:'SPU'},
+           {reg:'SP-SAD',type:'DH8D',to:'DTM'},{reg:'SP-SAE',type:'E295',to:'LTN'}];
+let routes=[{to:'WAW',rot:3,pm:1,plane:fleet[0],grow:1},{to:'DTM',rot:2,pm:1,plane:fleet[3],grow:1},{to:'LTN',rot:1,pm:1,plane:fleet[4],grow:1},
+            {to:'BGY',rot:1,pm:1,plane:fleet[1],grow:1},{to:'SPU',rot:1,pm:1,plane:fleet[2],grow:1}];
+const routeTo=c=>routes.find(r=>r.to===c), freePlanes=()=>fleet.filter(p=>!p.to);
+let cash=4820000, brand=LIVS[0][1], demand=false, sel=null, deliveries=[];
+
+// ================= MODEL =================
+const R=6371, rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI;
+function dist(a,b){const dφ=rad(b[1]-a[1]),dλ=rad(b[0]-a[0]);
+  const h=Math.sin(dφ/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dλ/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function arc(a,b,n=96){const φ1=rad(a[1]),λ1=rad(a[0]),φ2=rad(b[1]),λ2=rad(b[0]);
+  const d=dist(a,b)/R,out=[];for(let i=0;i<=n;i++){const f=i/n,A=Math.sin((1-f)*d)/Math.sin(d),B=Math.sin(f*d)/Math.sin(d);
+  const x=A*Math.cos(φ1)*Math.cos(λ1)+B*Math.cos(φ2)*Math.cos(λ2),y=A*Math.cos(φ1)*Math.sin(λ1)+B*Math.cos(φ2)*Math.sin(λ2),z=A*Math.sin(φ1)+B*Math.sin(φ2);
+  out.push([deg(Math.atan2(y,x)),deg(Math.atan2(z,Math.sqrt(x*x+y*y)))]);}return out;}
+function calc(to,rot,pm,T){const a=by[to],d=dist(BASE.ll,a.ll);
+  const natural=20500*BASE.catch*a.catch*a.tour/Math.pow(d,1.2), air=natural*(1-a.land), p0=120+d*0.16, price=p0*pm;
+  const want=air*Math.pow(pm,-1.6), cap=T.seats*rot, pax=Math.min(cap,want);
+  const rev=2*pax*price*7, cost=(T.fix+T.km*d)*rot*2*7;
+  return {a,d,natural,air,p0,price,want,cap,pax,lf:pax/cap,rev,cost,profit:rev-cost,unmet:Math.max(0,want-cap)};}
+const rc=r=>calc(r.to,r.rot,r.pm,TYPES[r.plane.type]);
+const flightMin=(d,T)=>d/T.speed*60+18, TURN=35;
+const maxRot=(d,T)=>Math.max(1,Math.min(6,Math.floor(17*60/(2*(flightMin(d,T)+TURN)))));
+const sgn=n=>(n<0?'−':'+')+Math.round(Math.abs(n)/1000);
+const tys=n=>Math.round(Math.abs(n)/1000)+' tys. zł', pn=n=>n<0?'neg':'pos';
+const zl=n=>Math.round(n).toLocaleString('pl-PL')+' zł', hm=m=>{m=((Math.round(m)%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');};
+const razy=n=>n===1?'raz':'razy';
+
+// ================= SYLWETKI SAMOLOTÓW (własne rysunki, malowanie z koloru linii) =================
+function sil(k){const T=TYPES[k],tp=T.kind==='tp',h=tp?21:25,L=T.len*7.4,x0=(400-L)/2,x1=x0+L,yT=44,yB=yT+h,xm=x0+L*0.47;
+  const fus=`M${x0+h} ${yT}L${x1-h*2.2} ${yT}L${x1} ${yT+h*.22}L${x1} ${yT+h*.46}L${x1-h*2.5} ${yB}L${x0+h*1.1} ${yB}Q${x0} ${yB} ${x0} ${yT+h*.62}Q${x0+h*.25} ${yT} ${x0+h} ${yT}Z`;
+  const fin=`M${x1-h*2.3} ${yT+1}L${x1-h*.75} ${yT-h*1.55}L${x1+3} ${yT-h*1.55}L${x1-h*.15} ${yT+h*.3}Z`;
+  let win='';for(let x=x0+h*1.9;x<x1-h*2.9;x+=6.6)win+=`<rect x="${x.toFixed(1)}" y="${yT+h*.3}" width="3.4" height="4.2" rx="1" fill="#2b3340"/>`;
+  const stab=tp?`<path d="M${x1-h*1.5} ${yT-h*1.5}h${h*1.9}v4h${-h*2.1}z" fill="#5c5a55"/>`:`<path d="M${x1-h*1.9} ${yT+h*.3}l${h*1.7} ${-h*.12}l${h*.2} 4l${-h*1.7} 2z" fill="#5c5a55"/>`;
+  const wing=tp?`<path d="M${xm-h*1.1} ${yT+1}h${h*2.6}l-6 5h${-h*2.2}z" fill="#5c5a55"/><rect x="${xm-h*.9}" y="${yT+5}" width="${h*1.9}" height="${h*.36}" rx="4" fill="#3e3d3a"/><path d="M${xm-h*.95} ${yT-6}v${h*.95}" stroke="#1b1a17" stroke-width="2.2" stroke-linecap="round"/>`
+    :`<path d="M${xm-h*.4} ${yB-5}l${h*2.5} ${h*.34}l${-h*.5} 3l${-h*2.6} -3z" fill="#5c5a55"/><ellipse cx="${xm+h*.2}" cy="${yB+6}" rx="${h*.82}" ry="${h*.33}" fill="#3e3d3a"/><ellipse cx="${xm-h*.55}" cy="${yB+6}" rx="2.5" ry="${h*.3}" fill="#8f8c84"/>`;
+  return `<svg viewBox="0 0 400 110" role="img" aria-label="${T.maker} ${T.name}">
+    <path d="${fin}" fill="var(--brand)" stroke="#1b1a17" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${x1-h*.95}" cy="${yT-h*.75}" r="${h*.24}" fill="#fbf8f1"/>
+    ${stab}<path d="${fus}" fill="#fbf8f1" stroke="#1b1a17" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M${x0+h*.55} ${yT+h*.76}H${x1-h*2.2}" stroke="var(--brand)" stroke-width="${h*.17}" stroke-linecap="round"/>
+    <path d="M${x0+h*.42} ${yT+h*.36}l${h*.62} ${-h*.2}v${h*.28}l${-h*.75} 2z" fill="#2b3340"/>${win}
+    <text x="${x0+h*2}" y="${yT+h*.22}" font-family="Bricolage Grotesque,sans-serif" font-weight="800" font-size="6.5" fill="var(--brand)" letter-spacing=".5">SILESIA AIR</text>${wing}</svg>`;}
+
+// ================= MAPA =================
+const wide=()=>innerWidth>760;
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/positron',center:[9.5,50.2],zoom:wide()?4.25:3.5,
+  attributionControl:{compact:true},dragRotate:false,pitchWithRotate:false});
+map.touchZoomRotate.disableRotation();
+const fc=f=>({type:'FeatureCollection',features:f});
+const line=(c,p={})=>({type:'Feature',properties:p,geometry:{type:'LineString',coordinates:c}});
+const ARC={};const arcTo=c=>ARC[c]||(ARC[c]=arc(BASE.ll,by[c].ll));
+const routesFC=()=>fc(routes.map(r=>{const p=arcTo(r.to);return line(p.slice(0,Math.max(2,Math.round(p.length*r.grow))),{to:r.to});}));
+function planeImg(fill){const c=document.createElement('canvas');c.width=c.height=56;const x=c.getContext('2d');x.translate(4,4);x.scale(2,2);
+  const p=new Path2D('M12 1.5c.9 0 1.5 1 1.5 2.5v5l8 4.5v2l-8-2.3v5l2.3 1.7V22L12 21l-3.8 1v-2.1l2.3-1.7v-5l-8 2.3v-2l8-4.5V4c0-1.5.6-2.5 1.5-2.5z');
+  x.lineJoin='round';x.lineWidth=2.6;x.strokeStyle='#fbf8f1';x.stroke(p);x.fillStyle=fill;x.fill(p);x.lineWidth=.7;x.strokeStyle='#1b1a17';x.stroke(p);
+  return x.getImageData(0,0,56,56);}
+// noc: trzy pasy zmierzchu, liczone z położenia słońca
+function nightPoly(utcH,alt){const decl=rad(-12),sunLon=-(utcH-12)*15,pts=[];
+  for(let lon=-60;lon<=80;lon+=2.5){const D=rad(lon-sunLon),A=Math.sin(decl),B=Math.cos(decl)*Math.cos(D),Rr=Math.hypot(A,B);
+    let v=Math.sin(rad(alt))/Rr;v=Math.max(-1,Math.min(1,v));let φ=deg(Math.PI-Math.asin(v)-Math.atan2(B,A));φ=((φ+180)%360+360)%360-180;
+    pts.push([lon,Math.max(-80,Math.min(84,φ))]);}
+  return {type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[[...pts,[80,84.5],[-60,84.5],pts[0]]]}};}
+
+let ready=false, apM={}, prio=[]; const NB=[0,1,2,3,4,5,6,7,8];
+map.on('load',()=>{
+  const keep={background:1,water:1,boundary_2:1,label_country_1:1,label_country_2:1};
+  for(const l of map.getStyle().layers){if(!keep[l.id])map.setLayoutProperty(l.id,'visibility','none');}
+  map.setPaintProperty('background','background-color','#efe8d8');map.setPaintProperty('water','fill-color','#a9c9d6');
+  map.setPaintProperty('boundary_2','line-color','#c9bfa9');
+  for(const id of ['label_country_1','label_country_2']){map.setPaintProperty(id,'text-color','#a89f8b');map.setPaintProperty(id,'text-halo-width',0);}
+  const vsrc=Object.entries(map.getStyle().sources).find(([k,v])=>v.type==='vector')[0];
+  for(const i of NB){map.addSource('night'+i,{type:'geojson',data:nightPoly(4,-i*1.5)});
+    map.addLayer({id:'night'+i,type:'fill',source:'night'+i,paint:{'fill-color':'#0d1a36','fill-opacity':.062,'fill-antialias':false}});}
+  map.addLayer({id:'lights',type:'circle',source:vsrc,'source-layer':'place',filter:['in',['get','class'],['literal',['city','town']]],
+    paint:{'circle-color':'#ffe9a6','circle-radius':['interpolate',['linear'],['zoom'],3,1.5,6,3.6],'circle-blur':.35,'circle-opacity':.95}});
+  map.addSource('rival',{type:'geojson',data:fc(RIVAL.map(([a,b])=>line(arc(by[a].ll,by[b].ll))))});
+  map.addLayer({id:'rival',type:'line',source:'rival',paint:{'line-color':'#7d7f8a','line-width':1,'line-dasharray':[3,3],'line-opacity':.7}});
+  map.addSource('preview',{type:'geojson',data:fc([])});
+  map.addLayer({id:'preview',type:'line',source:'preview',paint:{'line-color':'#1b1a17','line-width':2,'line-dasharray':[2,2]}});
+  map.addSource('routes',{type:'geojson',data:routesFC()});
+  map.addLayer({id:'routes-sel',type:'line',source:'routes',layout:{'line-cap':'round'},filter:['==',['get','to'],''],paint:{'line-color':'#fbf8f1','line-width':9}});
+  map.addLayer({id:'routes',type:'line',source:'routes',layout:{'line-cap':'round'},paint:{'line-color':brand,'line-width':2.4}});
+  map.addLayer({id:'routes-hit',type:'line',source:'routes',paint:{'line-color':'#000','line-opacity':0,'line-width':22}});
+  map.addSource('rail',{type:'geojson',data:line(RAIL)});
+  map.addLayer({id:'rail-a',type:'line',source:'rail',layout:{visibility:'none'},paint:{'line-color':'#1b1a17','line-width':5,'line-offset':9}});
+  map.addLayer({id:'rail-b',type:'line',source:'rail',layout:{visibility:'none'},paint:{'line-color':'#fbf8f1','line-width':2.4,'line-offset':9,'line-dasharray':[2,2]}});
+  map.addSource('trails',{type:'geojson',data:fc([])});
+  map.addLayer({id:'trails',type:'line',source:'trails',layout:{'line-cap':'round'},paint:{'line-color':['match',['get','o'],'me',brand,'new','#1b1a17','#7d7f8a'],'line-width':['match',['get','o'],'rival',1.5,3.5],'line-opacity':.45}});
+  map.addImage('pl-me',planeImg(brand),{pixelRatio:2});map.addImage('pl-rival',planeImg('#8b8d97'),{pixelRatio:2});map.addImage('pl-new',planeImg('#1b1a17'),{pixelRatio:2});
+  map.addSource('planes',{type:'geojson',data:fc([])});
+  map.addLayer({id:'planes',type:'symbol',source:'planes',layout:{'icon-image':['concat','pl-',['get','o']],'icon-size':['match',['get','o'],'rival',.8,'new',1.4,1.1],
+    'icon-rotate':['get','b'],'icon-rotation-alignment':'map','icon-allow-overlap':true,'icon-ignore-placement':true}});
+
+  map.on('click','routes-hit',e=>{e.originalEvent.hit=1;select(e.features[0].properties.to);});
+  map.on('click',e=>{if(!e.originalEvent.hit)select(null);});
+  map.on('mouseenter','routes-hit',()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave','routes-hit',()=>map.getCanvas().style.cursor='');
+  map.on('move',declutter);map.on('idle',declutter);
+  const nat=a=>a.code==='KTW'?-1:calc(a.code,1,1,TYPES.AT76).natural;
+  for(const a of [...AP].sort((x,y)=>nat(y)-nat(x))){const el=document.createElement('div');el.className='ap';
+    el.innerHTML=`<i class="ring"></i><i class="core"></i><span class="lbl"><b>${a.code}</b><em></em></span>`;
+    el.onclick=ev=>{ev.stopPropagation();select(a.code);};apM[a.code]=el;new maplibregl.Marker({element:el}).setLngLat(a.ll).addTo(map);}
+  buildFlights();ready=true;select('WAW');requestAnimationFrame(tick);
+});
+
+// ================= ROZKŁAD I RUCH =================
+let flights=[];
+function buildFlights(){
+  flights=routes.map((r,i)=>{const T=TYPES[r.plane.type],d=dist(BASE.ll,by[r.to].ll),fm=flightMin(d,T);
+    return {o:'me',r,pts:arcTo(r.to),fm,first:360+((i*23)%70),rot:r.rot,cycle:2*(fm+TURN),key:r.to,last:-1};});
+  RIVAL.forEach(([a,b],i)=>{const d=dist(by[a].ll,by[b].ll),fm=d/800*60+18;
+    flights.push({o:'rival',pts:arc(by[a].ll,by[b].ll),fm,first:345+i*37,rot:3,cycle:2*(fm+TURN),key:a+b,last:-1});});}
+// stan lotu o danej minucie doby: seg 0 leci tam, 1 stoi u celu, 2 wraca, 3 stoi w bazie
+function stateAt(f,t){const u=t-f.first,k=Math.floor(u/f.cycle);
+  if(u<0)return {seg:3,next:f.first,k:-1};if(k>=f.rot)return {seg:3,next:null,k};
+  const p=u-k*f.cycle,s=f.first+k*f.cycle;
+  if(p<f.fm)return {seg:0,f:p/f.fm,land:s+f.fm,k};
+  if(p<f.fm+TURN)return {seg:1,next:s+f.fm+TURN,k};
+  if(p<2*f.fm+TURN)return {seg:2,f:(p-f.fm-TURN)/f.fm,land:s+2*f.fm+TURN,k};
+  return {seg:3,next:k+1<f.rot?s+f.cycle:null,k};}
+const mercY=φ=>Math.log(Math.tan(Math.PI/4+rad(φ)/2));
+function along(pts,f,back){const e=f<.5?2*f*f:1-2*(1-f)*(1-f),g=(back?1-e:e)*(pts.length-1),i=Math.min(pts.length-2,Math.floor(g)),k=g-i,A=pts[i],B=pts[i+1];
+  let b=deg(Math.atan2(rad(B[0]-A[0]),mercY(B[1])-mercY(A[1])));if(back)b+=180;
+  const ll=[A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k],n=12;
+  const tail=back?[...pts.slice(i+1,Math.min(pts.length,i+1+n)).reverse(),ll]:[...pts.slice(Math.max(0,i-n+1),i+1),ll];
+  return {ll,b,tail};}
+function fx(ll,text,big){const el=document.createElement('div');el.className='fx'+(big?' big':'');el.innerHTML='<i></i>'+(text?`<b>${text}</b>`:'');
+  const m=new maplibregl.Marker({element:el}).setLngLat(ll).addTo(map);setTimeout(()=>m.remove(),2300);}
+
+let gm=5*60+25, speed=1, lastTs=0, frame=0, shown=cash; const MIN_PER_MS=1440/85000;
+function tick(ts){const dt=Math.min(120,ts-lastTs||16);lastTs=ts;const dmin=dt*speed*MIN_PER_MS;gm+=dmin;frame++;
+  const t=gm%1440, day=Math.floor(gm/1440);
+  // zegar i tarcza słońca
+  document.getElementById('time').textContent=hm(t);
+  document.getElementById('date').textContent=['wtorek','środa','czwartek','piątek','sobota','niedziela','poniedziałek'][day%7]+', '+(16+day)+' lutego';
+  const isDay=t>405&&t<1015;document.getElementById('orb').setAttribute('transform',`rotate(${(t/1440)*360-180} 19 19)`);
+  document.getElementById('orbdot').setAttribute('fill',isDay?'#f2b21d':'#e9edf5');
+  if(frame%2===0){const utc=((t/60-1)%24+24)%24;for(const i of NB)map.getSource('night'+i).setData(nightPoly(utc,-i*1.5));}
+  // samoloty
+  const P=[],TR=[];
+  for(const f of flights){const s=stateAt(f,t),id=day*1000+s.k*4+s.seg;
+    if(f.last>=0&&id!==f.last&&f.o==='me'&&((s.seg===1&&f.s.seg===0)||(s.seg===3&&f.s.seg===2))){const c=rc(f.r),rev=c.pax/f.r.rot*c.price;cash+=rev;
+      fx(s.seg===1?by[f.r.to].ll:BASE.ll,'+'+zl(Math.round(rev/100)*100));}
+    f.last=id;f.s=s;
+    if(s.seg===0||s.seg===2){const a=along(f.pts,s.f,s.seg===2);P.push({type:'Feature',properties:{o:f.o,b:a.b},geometry:{type:'Point',coordinates:a.ll}});TR.push(line(a.tail,{o:f.o}));}}
+  for(const d of [...deliveries]){const f=(gm-d.t0)/d.dur;
+    if(f>=1){deliveries.splice(deliveries.indexOf(d),1);fleet.push(d.plane);fx(BASE.ll,'',true);fleetCount();
+      toast(`${d.plane.reg} wylądował w Katowicach. Masz wolny samolot: włącz „Popyt” i wybierz lotnisko.`);if(sel)show();continue;}
+    const a=along(d.pts,f,false);P.push({type:'Feature',properties:{o:'new',b:a.b},geometry:{type:'Point',coordinates:a.ll}});TR.push(line(a.tail,{o:'new'}));}
+  map.getSource('planes').setData(fc(P));map.getSource('trails').setData(fc(TR));
+  // koszty płyną cały czas, przychód wpada przy lądowaniu
+  cash-=routes.reduce((s,r)=>s+rc(r).cost,0)/10080*dmin;
+  shown+=(cash-shown)*Math.min(1,dt/260);document.getElementById('cash').textContent=zl(Math.round(shown/100)*100);
+  // rysowanie nowej trasy
+  let growing=false;for(const r of routes)if(r.grow<1){r.grow=Math.min(1,r.grow+dt/900);growing=true;}
+  if(growing)map.getSource('routes').setData(routesFC());
+  if(frame%12===0){liveText();if(veil.classList.contains('open')&&fleetTab==='moja')fleetLive();}
+  requestAnimationFrame(tick);}
+document.getElementById('speed').onclick=e=>{const b=e.target.closest('button');if(!b)return;speed=+b.dataset.s;
+  document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));};
+function statusOf(f){if(!f||!f.s)return '';const s=f.s,n=by[f.r.to];
+  return s.seg===0?`W powietrzu do ${n.gen}, ląduje ${hm(s.land)}`:s.seg===2?`Wraca do Katowic, ląduje ${hm(s.land)}`
+    :s.seg===1?`Na ziemi: ${n.name}, odlot ${hm(s.next)}`:s.next!=null?`W bazie, odlot ${hm(s.next)}`:'W bazie, na dziś koniec lotów';}
+function liveText(){const e=panel.querySelector('[data-k=live]');if(e&&sel)e.textContent=statusOf(flights.find(f=>f.o==='me'&&f.key===sel));}
+
+// ================= STAN MAPY =================
+function mapState(){
+  const w=routes.reduce((s,r)=>s+rc(r).profit,0);
+  document.getElementById('weekly').innerHTML=`ostatni tydzień <span class="${pn(w)}">${sgn(w)} tys. zł</span>`;
+  if(!ready)return;
+  map.getSource('routes').setData(routesFC());
+  map.setFilter('routes-sel',['==',['get','to'],sel&&routeTo(sel)?sel:'']);
+  for(const l of ['rail-a','rail-b'])map.setLayoutProperty(l,'visibility',sel==='WAW'?'visible':'none');
+  map.getSource('preview').setData(fc(sel&&sel!=='KTW'&&!routeTo(sel)?[line(arcTo(sel))]:[]));
+  const order=[];
+  for(const a of AP){const el=apM[a.code],r=routeTo(a.code),base=a.code==='KTW';
+    el.className='ap'+(base?' base':r?' served':'')+(sel===a.code?' sel':'');
+    const ring=el.children[0],core=el.children[1],lbl=el.children[2],em=lbl.children[1];let off=base?13:r?10:8,show=base||!!r||sel===a.code,score=0;
+    em.className='';em.textContent='';ring.style.cssText='';core.style.cssText='';
+    if(!base){const c=r?rc(r):calc(a.code,1,1,TYPES.AT76);score=c.air;
+      if(demand){const or=Math.min(32,Math.sqrt(c.natural)*.95),cr=Math.max(3.5,Math.sqrt(c.air)*.95);
+        ring.style.cssText=`width:${or*2}px;height:${or*2}px`;core.style.cssText=`width:${cr*2}px;height:${cr*2}px`;off=cr+4;show=true;em.textContent=Math.round(c.air);}
+      else if(r){em.textContent=sgn(c.profit);em.className=pn(c.profit);}}
+    lbl.style.top=off+'px';order.push({el:lbl,show,p:base?1e9:sel===a.code?1e8:(r?1e6:0)+score});}
+  prio=order.sort((x,y)=>y.p-x.p);declutter();}
+function declutter(){const kept=[];for(const o of prio){o.el.style.visibility='hidden';if(!o.show)continue;const r=o.el.getBoundingClientRect();
+  if(kept.some(k=>r.left<k.right+3&&r.right>k.left-3&&r.top<k.bottom+2&&r.bottom>k.top-2))continue;kept.push(r);o.el.style.visibility='visible';}}
+function recolor(c){brand=c;document.documentElement.style.setProperty('--brand',c);if(!ready)return;
+  map.setPaintProperty('routes','line-color',c);map.setPaintProperty('trails','line-color',['match',['get','o'],'me',c,'new','#1b1a17','#7d7f8a']);
+  map.updateImage('pl-me',planeImg(c));}
+
+// ================= KARTA WYBORU =================
+const panel=document.getElementById('panel');
+function show(){
+  document.body.classList.toggle('haspanel',!!sel);
+  if(!sel){panel.classList.remove('open');mapState();return;}
+  let h='';
+  if(sel==='KTW'){const w=routes.reduce((s,r)=>s+rc(r).profit,0),fr=freePlanes().length;
+    h=`<div class="hd"><h2>Katowice</h2><div class="sub">KTW · Twoja baza · 4,6 mln ludzi w 90 minut dojazdu</div></div><div class="bd">
+      <div class="list">${routes.map(r=>{const c=rc(r);return `<div data-to="${r.to}"><span>${by[r.to].name} · ${TYPES[r.plane.type].name} · ${r.rot} ${razy(r.rot)} dziennie</span><b class="${pn(c.profit)}">${sgn(c.profit)} tys.</b></div>`;}).join('')}</div>
+      <p>Razem <b class="${pn(w)}">${sgn(w)} tys. zł</b> tygodniowo. ${fr?`Wolne samoloty: <b>${fr}</b>.`:'Wszystkie samoloty latają.'}</p>
+      <button class="go sec" id="pFleet">Flota i rynek samolotów</button></div>`;
+  } else {
+    const a=by[sel],r=routeTo(sel),free=freePlanes()[0],T=TYPES[r?r.plane.type:free?free.type:'AT76'],c=r?rc(r):calc(sel,1,1,T),fm=flightMin(c.d,T);
+    const land=a.land?`<p>Z <b>${Math.round(c.natural)}</b> osób dziennie ${a.land>=.5?'aż ':''}<b>${Math.round(c.natural*a.land)}</b> wybiera ${a.by}. Samolotem chce lecieć <b>${Math.round(c.air)}</b>.</p>`
+      :`<p><b>${Math.round(c.natural)}</b> osób dziennie chce tu podróżować z Katowic. Lądem nikt nie jedzie, za daleko.</p>`;
+    const season=a.tour>1.4?`<p>Kierunek wakacyjny: teraz zima, w lipcu chętnych będzie cztery razy więcej.</p>`:'';
+    h=`<div class="hd"><h2>Katowice → ${a.name}</h2><div class="sub">${a.code} · ${Math.round(c.d)} km · ${Math.floor(fm/60)} h ${String(Math.round(fm%60)).padStart(2,'0')} min lotu · zlewnia ${a.catch.toLocaleString('pl-PL')} mln</div></div><div class="bd">`;
+    if(r) h+=`<div class="ac">${sil(r.plane.type)}<div><div class="n">${T.maker} ${T.name}</div><div class="s">${r.plane.reg} · ${T.seats} miejsc</div></div></div>
+      <div class="live"><span data-k="live"></span></div>
+      <div class="nums"><div><b data-k="lf"></b><span>wypełnienie</span></div><div><b data-k="pax"></b><span>pasażerów dziennie</span></div><div><b data-k="profit"></b><span>tys. zł na tydzień</span></div></div>
+      ${land}${season}<p data-k="hint"></p>
+      <div class="step"><label>Cena biletu</label><button data-a="pm" data-d="-1">−</button><output data-k="price"></output><button data-a="pm" data-d="1">+</button></div>
+      <div class="step"><label>Loty dziennie</label><button data-a="rot" data-d="-1">−</button><output data-k="rot"></output><button data-a="rot" data-d="1">+</button></div>
+      <button class="alt" id="pClose">Zamknij trasę i zwolnij samolot</button></div>`;
+    else {const far=c.d>T.range;
+      h+=`${land}${season}`+(far?`<p><b class="neg">Za daleko</b> dla ${T.name}: zasięg ${T.range.toLocaleString('pl-PL')} km. Potrzebny większy samolot.</p>`
+        :`<p>Jeden lot dziennie w obie strony (${T.name}, ${T.seats} miejsc) ${c.profit<0?`przyniósłby <b class="neg">stratę około ${tys(c.profit)}</b>`:`dałby około <b class="pos">${tys(c.profit)}</b>`} tygodniowo.</p>`)
+        +(free&&!far?`<button class="go" id="pOpen">Otwórz trasę · ${free.reg}</button>`:`<p>${free?'':'Nie masz wolnego samolotu.'}</p><button class="go" id="pBuy">Kup samolot</button>`)+`</div>`;}
+  }
+  panel.innerHTML=`<button class="x" id="pX">×</button>`+h;panel.classList.add('open');
+  panel.querySelector('#pX').onclick=()=>select(null);
+  panel.querySelectorAll('.list div').forEach(d=>d.onclick=()=>select(d.dataset.to));
+  const q=id=>panel.querySelector(id);
+  if(q('#pFleet'))q('#pFleet').onclick=()=>openFleet('moja');
+  if(q('#pBuy'))q('#pBuy').onclick=()=>openFleet('rynek');
+  if(q('#pOpen'))q('#pOpen').onclick=()=>{const p=freePlanes()[0];p.to=sel;routes.push({to:sel,rot:1,pm:1,plane:p,grow:0});buildFlights();fleetCount();show();};
+  if(q('#pClose'))q('#pClose').onclick=()=>{const r=routeTo(sel);r.plane.to=null;routes=routes.filter(x=>x!==r);buildFlights();fleetCount();show();};
+  const r=routeTo(sel);
+  if(r){const T=TYPES[r.plane.type],fillNums=()=>{const c=rc(r),set=(k,v,cl)=>{const e=q(`[data-k=${k}]`);e.innerHTML=v;if(cl)e.className=cl;};
+      set('lf',Math.round(c.lf*100)+'%');set('pax',Math.round(c.pax*2));set('profit',sgn(c.profit),pn(c.profit));set('price',Math.round(c.price)+' zł');set('rot',r.rot);
+      set('hint',c.lf>.995&&c.unmet>5?`Samoloty są pełne, <b>${Math.round(c.unmet)}</b> chętnych dziennie zostaje na ziemi. Dołóż lot albo podnieś cenę.`
+        :c.lf<.6?`Samoloty latają w połowie puste. Obniż cenę albo zdejmij lot.`:'');mapState();};
+    fillNums();liveText();
+    panel.querySelectorAll('.step button').forEach(b=>b.onclick=()=>{const d=+b.dataset.d;
+      if(b.dataset.a==='pm')r.pm=Math.min(2,Math.max(.5,r.pm+d*.05));
+      else{r.rot=Math.min(maxRot(dist(BASE.ll,by[r.to].ll),T),Math.max(1,r.rot+d));buildFlights();}
+      fillNums();});}
+  mapState();}
+function select(code,quiet){sel=code;show();if(!code||quiet)return;
+  const a=by[code].ll,b=BASE.ll,bb=new maplibregl.LngLatBounds([Math.min(a[0],b[0]),Math.min(a[1],b[1])],[Math.max(a[0],b[0]),Math.max(a[1],b[1])]);
+  map.fitBounds(bb,{padding:wide()?{top:150,bottom:110,left:140,right:440}:{top:150,bottom:innerHeight*.52+30,left:50,right:50},maxZoom:4.7,duration:600});}
+let toastT;function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),7000);}
+document.getElementById('bDemand').onclick=e=>{demand=!demand;document.body.classList.toggle('demand',demand);e.currentTarget.classList.toggle('on',demand);mapState();
+  if(demand)toast('Niebieskie koło: ilu ludzi dziennie poleci z Katowic. Szara obwódka: ilu woli pociąg albo samochód.');};
+
+// ================= FLOTA I RYNEK =================
+const veil=document.getElementById('veil'),fleetEl=document.getElementById('fleet');let fleetTab='moja';
+function fleetCount(){const f=freePlanes().length;document.getElementById('fleetN').textContent=fleet.length+(f?` · ${f} wolny`:'');}
+function fleetLive(){fleetEl.querySelectorAll('[data-reg]').forEach(e=>{const p=fleet.find(x=>x.reg===e.dataset.reg);
+  e.textContent=p.to?statusOf(flights.find(f=>f.o==='me'&&f.key===p.to)):'Wolny, stoi w bazie';});}
+function openFleet(tab){fleetTab=tab;veil.classList.add('open');
+  let h=`<button class="x" id="fX">×</button><div class="top"><h2>Flota</h2>
+    <div class="tabs"><button data-t="moja" class="${tab==='moja'?'on':''}">Moje samoloty (${fleet.length})</button><button data-t="rynek" class="${tab==='rynek'?'on':''}">Rynek</button></div>
+    <div class="liv">Malowanie ${LIVS.map(l=>`<button title="${l[0]}" data-c="${l[1]}" style="background:${l[1]}" class="${l[1]===brand?'on':''}"></button>`).join('')}</div></div>`;
+  if(tab==='moja') h+=`<div class="rows">${fleet.map(p=>{const T=TYPES[p.type];return `<div class="row">${sil(p.type)}<div><div class="n">${p.reg} · ${T.maker} ${T.name}</div>
+      <div class="s">${T.seats} miejsc · zasięg ${T.range.toLocaleString('pl-PL')} km · ${p.to?'trasa Katowice – '+by[p.to].name:'bez trasy'}</div></div><div class="st" data-reg="${p.reg}"></div></div>`;}).join('')}</div>`;
+  else h+=`<div class="mk">${Object.entries(TYPES).map(([k,T])=>`<div class="it">${sil(k)}<div class="mkr">${T.maker}</div><div class="n">${T.name}</div>
+      <dl><dt>Miejsca</dt><dd>${T.seats}</dd><dt>Zasięg</dt><dd>${T.range.toLocaleString('pl-PL')} km</dd><dt>Prędkość</dt><dd>${T.speed} km/h</dd><dt>Wymagany pas</dt><dd>${T.rwy.toLocaleString('pl-PL')} m</dd>
+      <dt>Nowy od producenta</dt><dd>${T.list} mln USD</dd><dt>Leasing</dt><dd>${T.lease} tys. zł / tydz.</dd></dl>
+      <button class="go" data-lease="${k}">Weź w leasing · dostawa dziś</button></div>`).join('')}</div>
+    <div class="fine">Parametry przybliżone. Sylwetki są własnymi rysunkami w barwach Twojej linii. W mockupie rata leasingu nie wchodzi jeszcze do wyniku.</div>`;
+  fleetEl.innerHTML=h;fleetLive();
+  fleetEl.querySelector('#fX').onclick=()=>veil.classList.remove('open');
+  fleetEl.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openFleet(b.dataset.t));
+  fleetEl.querySelectorAll('.liv button').forEach(b=>b.onclick=()=>{recolor(b.dataset.c);openFleet(fleetTab);});
+  fleetEl.querySelectorAll('[data-lease]').forEach(b=>b.onclick=()=>lease(b.dataset.lease));}
+veil.onclick=e=>{if(e.target===veil)veil.classList.remove('open');};
+document.getElementById('bFleet').onclick=()=>openFleet('moja');
+function lease(k){const T=TYPES[k],o=ORIGIN[T.from],reg='SP-SA'+String.fromCharCode(65+fleet.length+deliveries.length),d=dist(o.ll,BASE.ll),dur=d/T.speed*60;
+  deliveries.push({pts:arc(o.ll,BASE.ll,160),t0:gm,dur,plane:{reg,type:k,to:null}});veil.classList.remove('open');select(null);
+  map.fitBounds(new maplibregl.LngLatBounds([Math.min(o.ll[0],BASE.ll[0]),Math.min(o.ll[1],BASE.ll[1])],[Math.max(o.ll[0],BASE.ll[0]),Math.max(o.ll[1],BASE.ll[1])]),
+    {padding:wide()?{top:160,bottom:120,left:160,right:160}:{top:160,bottom:90,left:40,right:40},duration:900});
+  toast(`${T.maker} ${T.name} ${reg} leci ${o.name} do Katowic. Ląduje o ${hm(gm+dur)}.`);}
+
+fleetCount();mapState();
+</script>
+</body>
+</html>
