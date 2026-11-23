@@ -87,10 +87,19 @@ przyjeżdża i w których miesiącach, z jakimi krajami region jest powiązany.
 
 ### 4.2 Flota
 
-- Samoloty mają zmyślone nazwy i producentów, ale prawdziwe klasy i parametry:
-  turbośmigłowy 70 miejsc, odrzutowiec regionalny 100, wąskokadłubowy 180,
-  wąskokadłubowy dalekiego zasięgu 200, szerokokadłubowy 300.
-- Parametry: miejsca, zasięg, spalanie, wymagany pas, czas obsługi na ziemi, załoga.
+- **Prawdziwi producenci i prawdziwe typy** (decyzja z 2026-11-23): samoloty pasażerskie
+  i odrzutowce biznesowe z prawdziwymi nazwami i parametrami. Zakres na start, około 100–120 typów:
+  - pasażerskie: Airbus, Boeing, Embraer, ATR, De Havilland Canada, Bombardier/Mitsubishi CRJ,
+    COMAC, Suchoj, plus starsze typy na rynek używanych (McDonnell Douglas, Fokker, BAe);
+  - biznesowe: Gulfstream, Bombardier, Dassault, Cessna (Textron), Embraer, Pilatus, Honda.
+- Parametry z jawnych źródeł: miejsca, zasięg, prędkość, spalanie, wymagany pas, masa,
+  czas obsługi na ziemi, załoga, cena katalogowa, lata produkcji.
+- Warunki użycia prawdziwych nazw są w [DANE-I-LICENCJE.md](DANE-I-LICENCJE.md):
+  nazwy jako tekst tak, logo producentów i prawdziwe malowania nie. Katalog jest plikiem danych,
+  więc nazwy da się podmienić bez ruszania gry.
+- **Odrzutowce biznesowe to osobna działalność: czarter.** Loty na zamówienie między miastami,
+  popyt z prawdziwych danych o zamożności regionów i z kalendarza wydarzeń (targi, festiwale,
+  wyścigi). Może być też innym sposobem na start: zamiast linii regionalnej mała firma czarterowa.
 - **Trzy sposoby zdobycia samolotu**: nowy od producenta (taniej przy większym zamówieniu,
   ale czeka się miesiącami), używany z rynku (od ręki, starszy, droższy w utrzymaniu),
   leasing (bez wkładu, wysoka rata, łatwo oddać).
@@ -240,11 +249,12 @@ Mapa ma żyć cały czas. Statyczne kropki i linie odpadają.
   To tani sposób na mocne wrażenie, bo geometria jest gotowa.
 
 **Samoloty i barwy**
-- Pięć klas samolotów, każda z własną sylwetką: widok z boku (katalog, flota) i z góry (mapa,
-  płyta lotniska). Rysowane wektorowo, żeby dobrze wyglądały w każdej wielkości.
+- Sylwetki własnego autorstwa: widok z boku (katalog, flota) i z góry (mapa, płyta lotniska).
+  Rysowane wektorowo. Przy ponad stu typach nie każdy dostaje osobny rysunek: kilkanaście
+  rodzin sylwetek, skalowanych i różniących się szczegółami (długość, silniki, końcówki skrzydeł).
 - **Malowanie linii**: gracz wybiera kolory, wzór na kadłubie i znak na ogonie. Malowanie
   nakłada się automatycznie na każdy samolot, na mapie i w katalogu.
-- Zmyślone typy, realistyczne proporcje. Bez prawdziwych nazw i znaków producentów.
+- Bez logo producentów i bez prawdziwych malowań linii lotniczych.
 
 **Zakup floty**
 - Katalog producenta z sylwetkami w barwach gracza i porównaniem parametrów do tras, na
@@ -260,7 +270,7 @@ Mapa ma żyć cały czas. Statyczne kropki i linie odpadają.
 - reszty świata poza Europą (dochodzi po premierze),
 - cargo,
 - ręcznego układania rozkładu co do minuty,
-- prawdziwych nazw linii i producentów samolotów.
+- prawdziwych nazw linii lotniczych (producenci samolotów są prawdziwi).
 
 ## 8. Otwarte decyzje
 

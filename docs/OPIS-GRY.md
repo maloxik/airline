@@ -20,7 +20,8 @@ miastami nie da się szybciej dojechać pociągiem albo samochodem.
 - **Odbiorca:** dorosły, który lubi lotnictwo, mapy i gry ekonomiczne. Chce się czuć jak
   szef linii lotniczej, a nie jak księgowy.
 - **Nazwa robocza:** Airline. Przykładowa linia gracza: „Silesia Air” (zmyślona).
-- **Ograniczenie prawne:** bez prawdziwych nazw i logo linii lotniczych oraz producentów samolotów.
+- **Ograniczenie prawne:** bez prawdziwych nazw i logo linii lotniczych. Samoloty mają prawdziwe
+  nazwy producentów i typów (jako tekst), ale bez logo producentów.
 
 ## 3. Świat gry
 
@@ -85,7 +86,8 @@ O trasie, którą już lata:
 O flocie:
 - jakie ma samoloty (liczba miejsc, zasięg, wiek), które są przypisane do tras, które stoją,
 - ofertę rynku: nowe od producenta (taniej przy większym zamówieniu, ale z czekaniem),
-  używane od ręki, leasing; pięć klas od turbośmigłowego na 70 miejsc po szerokokadłubowy na 300.
+  używane od ręki, leasing; ponad sto prawdziwych typów, od turbośmigłowych po szerokokadłubowe,
+  oraz odrzutowce biznesowe do lotów czarterowych.
 
 O marce i ludziach:
 - gdzie linia jest znana, a gdzie nie; jaką ma reputację i dlaczego,

@@ -65,9 +65,23 @@ Uwagi:
 
 - **Nazwy linii lotniczych**: nie używać prawdziwych (LOT, Ryanair). Konkurenci AI dostają
   nazwy zmyślone.
-- **Samoloty**: konkurencja powszechnie używa nazw Boeing/Airbus, ale to są znaki towarowe i
-  ryzyko rośnie z popularnością gry. Bezpieczniej: zmyślone nazwy producentów z realistycznymi
-  parametrami. Decyzja przed Plastrem 2.
+- **Samoloty: prawdziwi producenci i typy** (decyzja z 2026-11-23). To nie jest porada prawna.
+  - Parametry techniczne to fakty i nie podlegają ochronie. Zbieramy je we własnej tabeli
+    z jawnych źródeł (dokumenty producentów dla lotnisk, certyfikaty typu, encyklopedie).
+  - Nazwy producentów i modeli to znaki towarowe. Używanie ich jako tekstu, żeby nazwać
+    prawdziwy produkt, jest powszechne w gatunku: Airline Manager podaje ponad 360 prawdziwych
+    typów, Airlines Manager 130. Nie wiem, czy te gry mają licencje.
+  - Airbus prowadzi [program oficjalnych licencji](https://airbus.com/en/newsroom/news/2017-04-officially-licensed-projecting-airbus-brand-and-image-in-the-computer)
+    dla symulatorów, więc producenci traktują gry jako pole, na którym chcą mieć kontrolę.
+  - W USA sąd w 2020 r. uznał, że gra może pokazywać prawdziwy pojazd bez licencji
+    ([AM General przeciw Activision](https://www.aipla.org/detail/news/2020/04/08/activision-beats-humvee-trademark-claims-over-call-of-duty)).
+    To jeden wyrok jednego sądu w USA; w Unii zasady są inne.
+  - **Jak ograniczamy ryzyko:** nazwy tylko jako tekst; żadnych logo producentów; żadnych
+    prawdziwych malowań; sylwetki własnego autorstwa; producent nie pojawia się w nazwie gry,
+    na ikonie ani w reklamie; w grze zdanie „gra nie jest powiązana z producentami”;
+    katalog samolotów jako plik danych z drugim kompletem zmyślonych nazw, żeby po skardze
+    podmienić je jednym wydaniem.
+  - Przed wydaniem na Steamie: godzina z prawnikiem od własności intelektualnej.
 - **Kody IATA/ICAO i nazwy lotnisk**: fakty, powszechnie używane.
 
 ## Ekran „O grze” musi zawierać
