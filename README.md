@@ -3,8 +3,8 @@
 Symulator linii lotniczej na prawdziwej mapie: prawdziwe lotniska, prawdziwe miasta,
 popyt wynikający z prawdziwej geografii.
 
-Stan (2026-11-24): **faza 0 z roadmapy gotowa lokalnie.** Działa aplikacja z mapą Europy,
-dniem i nocą, światłami miast i 685 prawdziwymi lotniskami. Rozgrywki jeszcze nie ma.
+Stan (2026-11-24): **faza 0 gotowa, faza 1 w toku.** Działa aplikacja z mapą Europy, dniem i nocą,
+685 prawdziwymi lotniskami i widokiem popytu policzonym z prawdziwych danych. Rozgrywki jeszcze nie ma.
 Repozytorium: github.com/maloxik/airline (prywatne, gałąź `main`). Gra jest na telefon: buduje się do pliku APK.
 
 ## Uruchomienie
@@ -20,7 +20,8 @@ npm run dev
 | `npm run check` | sprawdzenie typów i testy |
 | `npm run build` | wersja do wdrożenia w `dist/` |
 | `npm run android` | buduje grę i przenosi ją do projektu Androida w `android/` |
-| `npm run data` | pobiera dane OurAirports i buduje od nowa `public/data/world.json` |
+| `npm run data` | pobiera prawdziwe dane (lotniska, ludność, zamożność, turystyka, migracja, ruch) i buduje `public/data/` |
+| `npm run calibrate` | dopasowuje model popytu do prawdziwego ruchu i pisze `docs/KALIBRACJA.md` |
 
 ## Struktura
 
@@ -40,6 +41,7 @@ więc przypadkowe użycie `document` albo mapy w rdzeniu nie przejdzie `npm run 
 - [docs/PROJEKT-GRY.md](docs/PROJEKT-GRY.md) — czym gra ma być: systemy, dane, platformy, własne propozycje
 - [docs/ROADMAPA.md](docs/ROADMAPA.md) — plan w fazach, od danych do wydania
 - [docs/KONKURENCJA.md](docs/KONKURENCJA.md) — co już istnieje i gdzie jest luka
+- [docs/KALIBRACJA.md](docs/KALIBRACJA.md) — jak blisko rzeczywistości jest model popytu
 - [docs/DANE-I-LICENCJE.md](docs/DANE-I-LICENCJE.md) — mapy, lotniska, miasta: skąd brać i na jakich warunkach
 - [docs/OPIS-GRY.md](docs/OPIS-GRY.md) — opis gry do wklejenia w inne AI, bez sugestii interfejsu
 - [docs/mockup/v6-telefon.html](docs/mockup/v6-telefon.html) — zaakceptowany mockup wyglądu i rozgrywki, wzorzec dla aplikacji

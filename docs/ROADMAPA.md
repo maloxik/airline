@@ -51,6 +51,26 @@ kawałek fazy 1). Vercel odpadł: gra jest tylko na telefon (decyzja z 2026-11-2
 
 ## Faza 1: Prawdziwy świat (L)
 
+**Stan 2026-11-24: pierwsza wersja działa, bramka jeszcze nie zaliczona.**
+
+Zrobione:
+- potok danych `npm run data`: lotniska i pasy (OurAirports), ludność 74 tys. miejscowości (GeoNames),
+  regiony NUTS 2 (GISCO), zamożność regionów i noclegi turystów zagranicznych miesiąc po miesiącu
+  (Eurostat), obywatele innych krajów w każdym kraju (Eurostat), zamożność krajów (Bank Światowy);
+- zlewnie lotnisk z podziałem ludzi między sąsiednie lotniska;
+- model popytu z trzema rodzajami podróżnych w `src/sim/demand.ts`, z testami;
+- kalibracja `npm run calibrate` na prawie 5 tys. prawdziwych tras z Eurostatu, raport w
+  [KALIBRACJA.md](KALIBRACJA.md);
+- w aplikacji: widok „Popyt” na mapie i karta lotniska z prawdziwymi danymi oraz porównaniem
+  z prawdziwym ruchem na trasie.
+
+Zostało do bramki:
+- konkurencja lądowa z prawdziwych linii kolejowych i dróg (dziś zależy tylko od odległości i morza);
+- powiązania między regionami, a nie tylko krajami (model zaniża trasy typu Katowice–Dortmund);
+- dane ONZ o migracji zamiast przybliżonych liczb dla Wielkiej Brytanii;
+- ludność z siatki GHSL zamiast samych miejscowości;
+- pasażerowie przesiadkowi na wielkich lotniskach.
+
 Najważniejsza faza. Tu rozstrzyga się, czy obietnica „prawdziwych danych” jest do spełnienia.
 
 - Potok danych w `data/`: pobranie, oczyszczenie i złożenie w jedną paczkę:

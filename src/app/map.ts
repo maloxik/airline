@@ -2,7 +2,7 @@
  * Mapa gry: dzienna mapa wektorowa z OpenStreetMap, noc liczona z położenia słońca
  * i prawdziwe światła miast (NASA) nałożone tylko po ciemnej stronie.
  */
-import { Map as MlMap, type FilterSpecification, type GeoJSONSource } from 'maplibre-gl';
+import { Map as MlMap, type ExpressionSpecification, type FilterSpecification, type GeoJSONSource } from 'maplibre-gl';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import {
   advance,
@@ -31,6 +31,15 @@ export type TimeOfDay = 'day' | 'night';
 export interface MapTick {
   date: Date;
   timeOfDay: TimeOfDay;
+  /** Miesiąc gry, 0 = styczeń. */
+  month: number;
+}
+
+/** Popyt z bazy do pozostałych lotnisk, do pokazania na mapie. */
+export interface DemandView {
+  base: Airport;
+  /** Kod IATA → podróżni dziennie w jedną stronę: samolotem i wszyscy razem. */
+  values: Map<string, { air: number; natural: number }>;
 }
 
 export interface WorldMapOptions {
@@ -45,9 +54,12 @@ export interface WorldMapOptions {
 export interface WorldMap {
   setSpeed: (speed: number) => void;
   select: (airport: Airport | null) => void;
+  /** Włącza widok popytu z podanej bazy albo go wyłącza (null). */
+  setDemand: (view: DemandView | null) => void;
   destroy: () => void;
 }
 
+type maplibreExpr = ExpressionSpecification;
 const fc = (features: Feature[]): FeatureCollection => ({ type: 'FeatureCollection', features });
 const polygon = (ring: LngLat[]): Feature => ({
   type: 'Feature',
@@ -102,6 +114,31 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
   let ready = false;
   let timeOfDay: TimeOfDay | '' = '';
   let destroyed = false;
+  let pendingDemand: DemandView | null = null;
+
+  const applyDemand = (view: DemandView | null): void => {
+    const on = Boolean(view);
+    for (const id of ['airports', 'airports-halo', 'airport-labels']) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
+    for (const id of ['demand-ring', 'demand-core', 'demand-labels', 'base']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    if (!view) return;
+    const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
+    source(map, 'demand').setData(
+      fc(
+        world.airports
+          .filter((a) => a.iata !== view.base.iata)
+          .map((a) => {
+            const d = view.values.get(a.iata) ?? { air: 0, natural: 0 };
+            const rc = clamp(Math.sqrt(d.air) * 0.85, 1.6, 26);
+            return {
+              type: 'Feature' as const,
+              properties: { iata: a.iata, air: d.air, label: `${a.iata} ${Math.round(d.air)}`, rc, rr: clamp(Math.sqrt(d.natural) * 0.85, rc, 34) },
+              geometry: { type: 'Point' as const, coordinates: [a.lng, a.lat] },
+            };
+          }),
+      ),
+    );
+    source(map, 'base').setData(fc([{ type: 'Feature', properties: { iata: view.base.iata }, geometry: { type: 'Point', coordinates: [view.base.lng, view.base.lat] } }]));
+  };
 
   const nightData = (): FeatureCollection => {
     const h = utcHours(clock);
@@ -178,7 +215,8 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
         timeOfDay = tod;
         applyTimeOfDay(tod);
       }
-      opts.onTick({ date: gameDate(clock), timeOfDay: tod });
+      const date = gameDate(clock);
+      opts.onTick({ date, timeOfDay: tod, month: date.getUTCMonth() });
     }
     raf = requestAnimationFrame(tick);
   };
@@ -248,6 +286,51 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       // Biały tekst z ciemną obwódką czyta się i na jasnej mapie dnia, i na ciemnej mapie nocy.
       paint: { 'text-color': '#ffffff', 'text-halo-color': '#14161a', 'text-halo-width': 1.6 },
     });
+    // Widok popytu: szara obwódka = wszyscy podróżni, niebieskie koło = ci, którzy polecą samolotem.
+    const byZoom = (prop: string): maplibreExpr => ['interpolate', ['linear'], ['zoom'], 3, ['*', ['get', prop], 0.55], 7, ['*', ['get', prop], 1.5]];
+    map.addSource('demand', { type: 'geojson', data: fc([]) });
+    map.addSource('base', { type: 'geojson', data: fc([]) });
+    map.addLayer({
+      id: 'demand-ring',
+      type: 'circle',
+      source: 'demand',
+      maxzoom: 11.5,
+      layout: { visibility: 'none', 'circle-sort-key': ['-', 0, ['get', 'rr']] },
+      paint: { 'circle-radius': byZoom('rr'), 'circle-color': 'rgba(150,156,168,.28)', 'circle-stroke-color': 'rgba(120,126,138,.85)', 'circle-stroke-width': 1 },
+    });
+    map.addLayer({
+      id: 'demand-core',
+      type: 'circle',
+      source: 'demand',
+      maxzoom: 11.5,
+      layout: { visibility: 'none', 'circle-sort-key': ['-', 0, ['get', 'rc']] },
+      paint: { 'circle-radius': byZoom('rc'), 'circle-color': '#2a5bd7', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2 },
+    });
+    map.addLayer({
+      id: 'demand-labels',
+      type: 'symbol',
+      source: 'demand',
+      maxzoom: 11.5,
+      filter: ['>=', ['get', 'air'], 1],
+      layout: {
+        visibility: 'none',
+        'text-field': ['get', 'label'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 3, 10.5, 7, 13],
+        'text-offset': [0, 1.1],
+        'text-anchor': 'top',
+        'symbol-sort-key': ['-', 0, ['get', 'air']],
+      },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': '#14161a', 'text-halo-width': 1.6 },
+    });
+    map.addLayer({
+      id: 'base',
+      type: 'circle',
+      source: 'base',
+      maxzoom: 11.5,
+      layout: { visibility: 'none' },
+      paint: { 'circle-radius': 7, 'circle-color': '#ffffff', 'circle-stroke-color': '#e0492f', 'circle-stroke-width': 4.5 },
+    });
     map.addLayer({ id: 'airports-hit', type: 'circle', source: 'airports', paint: { 'circle-radius': 16, 'circle-opacity': 0 } });
 
     map.on('click', 'airports-hit', (e) => {
@@ -264,6 +347,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     const at = opts.container.querySelector('.maplibregl-ctrl-attrib');
     at?.classList.remove('maplibregl-compact-show');
     ready = true;
+    applyDemand(pendingDemand);
   });
 
   const sync = (): void => {
@@ -287,6 +371,10 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
         fc(airport ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [airport.lng, airport.lat] } }] : []),
       );
       if (airport && map.getZoom() < 4.2) map.easeTo({ center: [airport.lng, airport.lat], zoom: 4.6, duration: 700 });
+    },
+    setDemand: (view) => {
+      pendingDemand = view;
+      if (ready) applyDemand(view);
     },
     destroy: () => {
       destroyed = true;

@@ -63,6 +63,24 @@ Uwagi:
   wskazać na początku fazy 1.
 - Zmodyfikowane dane Eurostatu trzeba oznaczyć jako zmienione.
 
+## Co jest już w paczce danych (2026-11-24)
+
+Paczkę buduje `npm run data` (`tools/data/build-world.mjs`). Pobrane pliki źródłowe leżą w `data-cache/`
+(poza repozytorium), wynik w `public/data/`.
+
+| Dane | Źródło | Uwagi |
+|---|---|---|
+| Lotniska, pasy | OurAirports | 685 lotnisk Europy i okolic |
+| Ludność | GeoNames `cities1000` (CC BY 4.0) | miejscowości powyżej tysiąca mieszkańców; bez dzielnic, żeby nie liczyć podwójnie |
+| Regiony | GISCO, NUTS 2 w skali 1:20 mln | lotnisko na wybrzeżu dostaje najbliższy region swojego kraju |
+| Zamożność | Eurostat `nama_10r_2gdp` (PPS na mieszkańca, Unia = 100), poza Unią Bank Światowy | |
+| Noclegi turystów zagranicznych | Eurostat `tour_occ_nin2m`, 2023, regiony × miesiące | poza zasięgiem Eurostatu szacunek z ludności, oznaczony w danych |
+| Powiązania krajów | Eurostat `migr_pop1ctz`, 2023 | Wielka Brytania wpisana w przybliżeniu z pamięci, do zastąpienia danymi ONZ |
+| Prawdziwy ruch na trasach | Eurostat `avia_par_*`, 2023 | prawie 5 tys. tras; tylko do kalibracji i porównań |
+
+Atrybucja w grze musi objąć: OurAirports, GeoNames, Eurostat, GISCO (© EuroGeographics dla granic
+administracyjnych), Bank Światowy, OpenStreetMap, NASA.
+
 ## Kolej i drogi (wyróżnik gry)
 
 - Linie kolejowe dużych prędkości i autostrady z OSM (ODbL), przeliczone w `tools/` na prosty

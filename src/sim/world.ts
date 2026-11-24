@@ -17,11 +17,35 @@ export interface Airport {
   size: 'L' | 'M';
   /** Najdłuższy czynny pas w metrach; 0, gdy brak danych. */
   runwayM: number;
+  /** Ludzie, którzy mają do lotniska blisko. Liczeni przy każdym lotnisku w zasięgu, więc sąsiednie lotniska się pokrywają. */
+  catchRaw: number;
+  /** Ludzie przypisani do lotniska bez podwójnego liczenia: sąsiednie lotniska dzielą się nimi. Podstawa popytu. */
+  catch: number;
+  /** Region NUTS 2 (Eurostat); pusty poza obszarem objętym podziałem. */
+  nuts: string;
+  /** Zamożność regionu albo kraju; średnia Unii Europejskiej = 100. */
+  wealth: number;
+  /** Noclegi turystów zagranicznych w okolicy lotniska w kolejnych miesiącach roku, w tysiącach. */
+  nights: number[];
+  /** true, gdy noclegi są szacunkiem z ludności, a nie danymi Eurostatu. */
+  nightsEstimated: boolean;
 }
 
 export interface WorldData {
-  /** Kiedy i z czego zbudowano paczkę. */
+  /** Kiedy zbudowano paczkę. */
   builtAt: string;
+  /** Rok, z którego pochodzą statystyki. */
+  year: number;
   source: string;
   airports: Airport[];
+  /** Powiązania między krajami: ['DE-PL', tysiące obywateli jednego kraju mieszkających w drugim]. */
+  ties: [string, number][];
+}
+
+/** Prawdziwy ruch pasażerów na trasach (Eurostat), do kalibracji modelu i do porównań w grze. */
+export interface RealRoutes {
+  year: number;
+  source: string;
+  /** ['DTM-KTW', pasażerów w roku w obu kierunkach] */
+  routes: [string, number][];
 }
