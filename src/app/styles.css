@@ -622,3 +622,139 @@ button {
 .note + .stats {
   margin-top: 12px;
 }
+
+/* --- strategia: rynek, zlecenia, marka, finanse --- */
+.hud .left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+.chip {
+  appearance: none;
+  margin: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 16px;
+  padding: 8px 14px;
+  font: 600 13px/1 var(--f);
+  color: var(--txt);
+}
+.chip.on {
+  background: #2a5bd7;
+  border-color: transparent;
+  color: #fff;
+}
+.dock button {
+  position: relative;
+}
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 9px;
+  background: var(--brand);
+  color: #fff;
+  font: 700 10.5px/17px var(--f);
+  font-style: normal;
+  text-align: center;
+  padding: 0 4px;
+}
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 -20px 12px;
+  padding: 0 20px;
+  scrollbar-width: none;
+}
+.chips button {
+  all: unset;
+  cursor: pointer;
+  white-space: nowrap;
+  font: 600 13px/1 var(--f);
+  padding: 9px 13px;
+  border-radius: 14px;
+  background: var(--soft);
+  color: var(--sub);
+}
+.chips button.on {
+  background: var(--txt);
+  color: #fff;
+}
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pair .go {
+  margin-top: 0;
+  padding: 11px 8px;
+}
+.go small {
+  display: block;
+  font: 500 12px/1.2 var(--f);
+  margin-top: 4px;
+  opacity: 0.85;
+}
+.go:disabled,
+.go[disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.list button:disabled {
+  cursor: default;
+}
+.list button:disabled .nm {
+  color: var(--sub);
+}
+.card.job {
+  padding-top: 14px;
+}
+.card.job .go {
+  font-size: 14.5px;
+}
+.box + .card,
+.box + .box {
+  margin-top: 0;
+}
+.list + .note,
+.list + .go,
+.list + .stats {
+  margin-top: 12px;
+}
+.go + .list {
+  margin-top: 12px;
+}
+.alt.left + .stats {
+  margin-top: 10px;
+}
+.sum + .go,
+.sum + .pair {
+  margin-top: 12px;
+}
+
+/* Ekran gry nie przewija się, a schowany arkusz i menu nie przyjmują dotyku ani fokusu. */
+.game {
+  position: fixed;
+  inset: 0;
+  height: auto;
+}
+.sheet {
+  visibility: hidden;
+  transition:
+    transform 0.42s cubic-bezier(0.2, 0.85, 0.25, 1),
+    visibility 0s 0.42s;
+}
+.sheet.open {
+  visibility: visible;
+  transition: transform 0.42s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+.dock.hide {
+  visibility: hidden;
+  pointer-events: none;
+}

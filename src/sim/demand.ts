@@ -6,7 +6,7 @@
  * prawdziwego ruchu między lotniskami skryptem tools/data/calibrate.ts.
  */
 import { distanceKm, type LngLat } from './geo';
-import type { Airport, WorldData } from './world';
+import type { Airport, RealRoutes, WorldData } from './world';
 import fitted from './demand-params.json';
 
 export interface DemandParams {
@@ -49,6 +49,8 @@ export interface WorldIndex {
   countryCatch: Map<string, number>;
   /** Powiązania między krajami w tysiącach osób; klucz 'DE-PL' (alfabetycznie). */
   ties: Map<string, number>;
+  /** Prawdziwy ruch na trasach: klucz 'DTM-KTW' (alfabetycznie) → pasażerów w roku w obu kierunkach. */
+  realTraffic: Map<string, number>;
   /** Pamięć podręczna: suma „skąd mogą przyjechać turyści” dla każdego lotniska, osobno dla każdego zestawu parametrów. */
   tourismReach: Map<string, Map<string, number>>;
 }
@@ -56,13 +58,14 @@ export interface WorldIndex {
 /** Średnia długość pobytu turysty zagranicznego w noclegach. */
 const NIGHTS_PER_TRIP = 5;
 
-export function indexWorld(world: WorldData): WorldIndex {
+export function indexWorld(world: WorldData, real?: RealRoutes | null): WorldIndex {
   const countryCatch = new Map<string, number>();
   for (const a of world.airports) countryCatch.set(a.country, (countryCatch.get(a.country) ?? 0) + a.catch);
   return {
     airports: new Map(world.airports.map((a) => [a.iata, a])),
     countryCatch,
     ties: new Map(world.ties),
+    realTraffic: new Map(real?.routes ?? []),
     tourismReach: new Map(),
   };
 }

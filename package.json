@@ -1,6 +1,6 @@
 {
   "name": "airline",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Symulator linii lotniczej na prawdziwej mapie",
   "scripts": {
     "dev": "vite",

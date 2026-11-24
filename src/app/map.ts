@@ -63,6 +63,8 @@ export interface FlightOnMap {
   /** 0–1, część trasy już przebyta. */
   progress: number;
   kind: 'tp' | 'jet';
+  /** true = lot na zlecenie (cargo albo czarter), rysowany inaczej niż lot rozkładowy. */
+  job?: boolean;
 }
 
 export interface WorldMapOptions {
@@ -85,6 +87,8 @@ export interface WorldMap {
   setDemand: (view: DemandView | null) => void;
   /** Baza i lotniska, do których gracz lata. */
   setNetwork: (base: Airport | null, served: Airport[]) => void;
+  /** Włącza widok znajomości marki (kod IATA → 0–1) albo go wyłącza (null). */
+  setBrand: (values: Map<string, number> | null) => void;
   destroy: () => void;
 }
 
@@ -181,6 +185,14 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
   let destroyed = false;
   let pendingDemand: DemandView | null = null;
   let pendingNetwork: { base: Airport | null; served: Airport[] } = { base: null, served: [] };
+  let pendingBrand: Map<string, number> | null = null;
+
+  const applyBrand = (): void => {
+    map.setLayoutProperty('brand', 'visibility', pendingBrand ? 'visible' : 'none');
+    map.setLayoutProperty('brand-labels', 'visibility', pendingBrand ? 'visible' : 'none');
+    const rows = pendingBrand ? [...pendingBrand].map(([iata, a]) => ({ a, airport: byIata.get(iata) })).filter((r) => r.airport) : [];
+    source(map, 'brand').setData(fc(rows.map((r) => point(ll(r.airport!), { a: r.a, label: `${r.airport!.iata} ${Math.round(r.a * 100)}%` }))));
+  };
   const arcs = new Map<string, LngLat[]>();
   const arc = (from: LngLat, to: LngLat): LngLat[] => {
     const key = `${from[0]},${from[1]}>${to[0]},${to[1]}`;
@@ -294,7 +306,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
         const a = pts[i]!;
         const b = pts[i + 1]!;
         const pos: LngLat = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
-        planes.push(point(pos, { k: f.kind, b: mapBearing(a, b) }));
+        planes.push(point(pos, { k: f.kind, b: mapBearing(a, b), o: f.job ? 'job' : 'plane' }));
         trails.push(lineString([...pts.slice(Math.max(0, i - 13), i + 1), pos]));
       }
       source(map, 'planes').setData(fc(planes));
@@ -324,7 +336,20 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     const byZoom = (prop: string): Expr => ['interpolate', ['linear'], ['zoom'], 3, ['*', ['get', prop], 0.55], 7, ['*', ['get', prop], 1.5]];
     const empty = (id: string): void => void map.addSource(id, { type: 'geojson', data: fc([]) });
     map.addSource('airports', { type: 'geojson', data: fc(world.airports.map((a) => point(ll(a), { iata: a.iata, big: a.size === 'L' ? 1 : 0 }))) });
-    for (const id of ['routes', 'selected', 'served', 'base', 'demand', 'trails', 'planes']) empty(id);
+    for (const id of ['routes', 'selected', 'served', 'base', 'demand', 'trails', 'planes', 'brand']) empty(id);
+    // Znajomość marki: plama w kolorze linii, tym większa, im więcej ludzi zna linię w tym mieście.
+    map.addLayer({
+      id: 'brand',
+      type: 'circle',
+      source: 'brand',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-color': BRAND,
+        'circle-opacity': 0.32,
+        'circle-blur': 0.7,
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, ['*', ['get', 'a'], 16], 4, ['*', ['get', 'a'], 46], 7, ['*', ['get', 'a'], 130]],
+      },
+    });
 
     map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 4, 'line-opacity': 0.55 } });
     map.addLayer({ id: 'routes', type: 'line', source: 'routes', layout: { 'line-cap': 'round' }, paint: { 'line-color': BRAND, 'line-width': 2 } });
@@ -424,10 +449,18 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       },
       paint: label,
     });
+    map.addLayer({
+      id: 'brand-labels',
+      type: 'symbol',
+      source: 'brand',
+      layout: { visibility: 'none', 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 11.5, 'text-offset': [0, 1], 'text-anchor': 'top', 'symbol-sort-key': ['-', 0, ['get', 'a']] },
+      paint: label,
+    });
     map.addLayer({ id: 'trails', type: 'line', source: 'trails', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.65, 'line-blur': 1 } });
     for (const k of ['jet', 'tp'] as const) {
       map.addImage(`shadow-${k}`, planeImage(k, '#000'), { pixelRatio: 2 });
       map.addImage(`plane-${k}`, planeImage(k, BRAND, '#fff'), { pixelRatio: 2 });
+      map.addImage(`job-${k}`, planeImage(k, '#ffffff', '#14161a'), { pixelRatio: 2 });
     }
     const planeLayout = {
       'icon-rotate': ['get', 'b'] as Expr,
@@ -437,7 +470,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       'icon-size': ['interpolate', ['linear'], ['zoom'], 2, 0.5, 4, 0.8, 7, 1.25] as Expr,
     };
     map.addLayer({ id: 'shadows', type: 'symbol', source: 'planes', layout: { ...planeLayout, 'icon-image': ['concat', 'shadow-', ['get', 'k']] }, paint: { 'icon-opacity': 0.22, 'icon-translate': [4, 6] } });
-    map.addLayer({ id: 'planes', type: 'symbol', source: 'planes', layout: { ...planeLayout, 'icon-image': ['concat', 'plane-', ['get', 'k']] } });
+    map.addLayer({ id: 'planes', type: 'symbol', source: 'planes', layout: { ...planeLayout, 'icon-image': ['concat', ['get', 'o'], '-', ['get', 'k']] } });
     map.addLayer({ id: 'airports-hit', type: 'circle', source: 'airports', paint: { 'circle-radius': 16, 'circle-opacity': 0 } });
 
     type Handled = MouseEvent & { handled?: boolean };
@@ -459,6 +492,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     ready = true;
     applyNetwork();
     applyDemand(pendingDemand);
+    applyBrand();
   });
 
   const sync = (): void => {
@@ -491,6 +525,10 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     setNetwork: (b, served) => {
       pendingNetwork = { base: b, served };
       if (ready) applyNetwork();
+    },
+    setBrand: (values) => {
+      pendingBrand = values;
+      if (ready) applyBrand();
     },
     destroy: () => {
       destroyed = true;

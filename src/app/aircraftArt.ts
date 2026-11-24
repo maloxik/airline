@@ -5,8 +5,6 @@
 import type { AircraftType } from '../sim';
 
 interface Shape {
-  /** Długość kadłuba w metrach. */
-  length: number;
   /** Wysokość kadłuba na rysunku. */
   h: number;
   winglet: 'shark' | 'split' | 'small' | 'none';
@@ -14,23 +12,25 @@ interface Shape {
   /** Owiewka podwozia pod kadłubem (ATR). */
   pod?: boolean;
 }
-const SHAPES: Record<string, Shape> = {
-  AT76: { length: 27.2, h: 24, winglet: 'none', engine: 1, pod: true },
-  DH8D: { length: 32.8, h: 23, winglet: 'none', engine: 1 },
-  E295: { length: 41.5, h: 26, winglet: 'small', engine: 1.1 },
-  BCS3: { length: 38.7, h: 28, winglet: 'shark', engine: 1 },
-  A20N: { length: 37.6, h: 31, winglet: 'shark', engine: 1.08 },
-  B38M: { length: 39.5, h: 29, winglet: 'split', engine: 1 },
-};
+
+/** Kształt wynika z klasy samolotu i producenta; długość bierzemy z katalogu. */
+function shapeOf(type: AircraftType): Shape {
+  if (type.cls === 'tp') return { h: 23, winglet: 'none', engine: 1, pod: type.maker === 'ATR' };
+  const winglet: Shape['winglet'] = !type.efficient ? 'small' : type.maker === 'Boeing' && type.cls === 'nb' ? 'split' : type.cls === 'wb' ? 'small' : 'shark';
+  if (type.cls === 'rj') return { h: 25, winglet, engine: type.efficient ? 1.1 : 0.95 };
+  if (type.cls === 'nb') return { h: 29, winglet, engine: type.efficient ? 1.08 : 0.95 };
+  return { h: 33, winglet, engine: 1.25 };
+}
 
 let counter = 0;
 
 /** Zwraca gotowy znacznik SVG. `brand` to kolor linii, `airline` trafia na kadłub. */
 export function aircraftSvg(type: AircraftType, brand: string, airline: string): string {
-  const s = SHAPES[type.id] ?? { length: 36, h: 28, winglet: 'none' as const, engine: 1 };
+  const s = shapeOf(type);
   const tp = type.kind === 'tp';
   const h = s.h;
-  const L = s.length * 8.1;
+  // Największe samoloty skalujemy tak, żeby zmieściły się w kadrze.
+  const L = type.lengthM * Math.min(8.1, 384 / type.lengthM);
   const x0 = (420 - L) / 2;
   const x1 = x0 + L;
   const yT = tp ? 46 : 52;

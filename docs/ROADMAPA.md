@@ -125,6 +125,22 @@ testu na obcej osobie (bramka).
 **Gotowe, gdy:** obca osoba gra 20 minut bez tłumaczenia i chce grać dalej.
 **Bramka:** jeśli pętla nie bawi, wracamy do projektu gry.
 
+## Strategia ekonomiczna: stan po wersji 0.3.0 (2026-11-24)
+
+Na prośbę „zrobić z tego pełnoprawną strategię” do gry weszły naraz kawałki faz 4–7:
+
+| System | Co działa | Czego brakuje |
+|---|---|---|
+| Flota | 22 prawdziwe typy w czterech klasach, leasing, zakup na własność, sprzedaż, zmiana samolotu na trasie | rynek używanych, kolejka dostaw, starzenie, przeglądy |
+| Marka | znajomość marki w każdym mieście, rośnie tam, gdzie latasz; kampanie w miastach; widok na mapie | reputacja z punktualności, program lojalnościowy |
+| Konkurencja | na trasach, które naprawdę ktoś lata (Eurostat), rynek dzieli się według liczby miejsc i ceny | rywale jako linie, które same otwierają trasy i odpowiadają na ceny |
+| Zlecenia | losowe ładunki i czartery dla wolnych samolotów, z terminem, ładownością i zasięgiem | zlecenia stałe (kontrakty), kary za spóźnienie |
+| Finanse | kredyt z limitem i odsetkami, raport tygodnia, poziomy rozwoju linii, bankructwo | inwestor, zabezpieczenie ceny paliwa, wahania kosztów |
+| Siatka | trasy tylko z jednej bazy | druga baza, przesiadki, oferty lotnisk i samorządów |
+
+Ceny samolotów i raty są w skali gry (wyliczone z wielkości i klasy), nie z cenników.
+Balansu nikt jeszcze nie stroił: liczby są pierwszym przybliżeniem.
+
 ## Faza 4: Flota i siatka (L)
 
 - Katalog samolotów w pięciu klasach, ze zmyślonymi nazwami i realistycznymi parametrami.
