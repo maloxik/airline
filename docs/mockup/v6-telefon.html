@@ -59,6 +59,15 @@ button{font-family:var(--f);color:inherit}
 .offerbox{border-radius:18px;border:1.5px solid var(--brand);padding:12px 14px 14px;margin-bottom:12px;font:400 14.5px/1.4 var(--f)}
 .offerbox .t{display:block;font:700 15px/1.2 var(--f);margin-bottom:4px;color:var(--brand)}
 .grabz{flex:none;padding-bottom:6px;touch-action:none;cursor:grab}
+.apview .ap,.apview .fx{display:none}
+.apgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.apgrid div{border-radius:12px;background:var(--soft);padding:7px 10px;font:500 12.5px/1.3 var(--f)}
+.apgrid b{font-weight:700}
+.apgrid span{display:block;color:var(--sub);font-size:11.5px}
+.ap.base2 .core{width:14px;height:14px;background:#fff;border:4px solid var(--brand);box-shadow:0 0 0 1.5px #fff}
+.box{border-radius:18px;background:var(--soft);padding:12px 14px 14px;margin:12px 0;font:400 14.5px/1.4 var(--f)}
+.box .t{display:block;font:700 15px/1.2 var(--f);margin-bottom:4px}
+.go[disabled]{opacity:.38;pointer-events:none}
 .fx{width:0;height:0;position:relative;pointer-events:none}
 .fx i{position:absolute;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--brand);animation:ring 1.4s ease-out forwards}
 .fx.big i{border-width:3px;animation-duration:2.4s}
@@ -203,7 +212,15 @@ const TYPES={
 const ORIGIN={TLS:{name:'z Tuluzy',ll:[1.36,43.63]},W:{name:'zza Atlantyku',ll:[-12.5,51.5]}};
 const LIVS=[['Cynober','#e0492f'],['Szmaragd','#12805c'],['Kobalt','#2a5bd7'],['Grafit','#3a3d46']];
 const RAIL=[[19.02,50.26],[19.45,50.62],[19.92,51.2],[20.32,51.76],[21.0,52.23]];
-const RIVAL=[['WAW','CDG'],['WAW','FRA'],['WAW','ARN'],['KRK','LTN'],['WAW','IST'],['WAW','MAD']];
+// Linie sterowane przez grę (nazwy zmyślone)
+const AIRL={POL:{n:'Polonia',t:'przewoźnik narodowy, węzeł w Warszawie'},JET:{n:'Jetka',t:'tani przewoźnik, bazy w Krakowie i Wrocławiu'}};
+const RIVAL=[['WAW','CDG','POL'],['WAW','FRA','POL'],['WAW','ARN','POL'],['KRK','LTN','JET'],['WAW','IST','POL'],['WAW','MAD','POL'],
+  ['KTW','LTN','JET'],['KRK','BGY','JET'],['WRO','DTM','JET'],['WAW','AMS','POL'],['WAW','LTN','POL'],['KRK','AMS','JET']];
+// [długość pasa m, pasażerów mln rocznie] — przybliżone, z pamięci
+const INFO={KTW:[3200,5.6],WAW:[3690,18.5],KRK:[2550,9.4],GDN:[2800,5.9],WRO:[2500,3.9],POZ:[2500,2.8],RZE:[3200,1],LTN:[2160,16],CDG:[4200,67],FRA:[4000,59],
+  MUC:[4000,37],BER:[4000,23],DTM:[2000,2.9],BGY:[2930,16],FCO:[3900,40],BCN:[3350,50],ATH:[4000,28],OSL:[3600,25],ARN:[3300,22],CPH:[3600,27],AMS:[3800,62],
+  VIE:[3600,30],PRG:[3700,14],BUD:[3700,15],SPU:[2550,3.3],BOJ:[3200,1.9],IST:[4100,76],MAD:[4350,60],LIS:[3800,34],DUB:[3100,32]};
+const bases=new Set(['KTW']);
 let fleet=[{reg:'SP-SAA',type:'AT76',to:'WAW'},{reg:'SP-SAB',type:'AT76',to:'BGY'},{reg:'SP-SAC',type:'AT76',to:'SPU'},{reg:'SP-SAD',type:'DH8D',to:'DTM'},{reg:'SP-SAE',type:'E295',to:'LTN'}];
 let routes=[{to:'WAW',rot:3,pm:1,plane:fleet[0],grow:1},{to:'DTM',rot:2,pm:1,plane:fleet[3],grow:1},{to:'LTN',rot:1,pm:1,plane:fleet[4],grow:1},{to:'BGY',rot:1,pm:1,plane:fleet[1],grow:1},{to:'SPU',rot:1,pm:1,plane:fleet[2],grow:1}];
 const routeTo=c=>routes.find(r=>r.to===c), freePlanes=()=>fleet.filter(p=>!p.to);
@@ -302,13 +319,26 @@ function maskLights(utc){const c=map.getContainer(),W=c.clientWidth,H=c.clientHe
   const e=document.getElementById('lights');e.style.webkitMaskImage=m;e.style.maskImage=m;}
 let ready=false, apM={}, prio=[];
 map.on('load',()=>{
-  const keep={background:1,water:1,boundary_2:1,label_country_1:1,label_country_2:1};
+  const keep={background:1,water:1,boundary_2:1,label_country_1:1,label_country_2:1,building:1,'aeroway-taxiway':1,'aeroway-runway-casing':1,'aeroway-area':1,'aeroway-runway':1,highway_minor:1,highway_major_inner:1,highway_motorway_inner:1};
   for(const l of map.getStyle().layers){if(!keep[l.id])map.setLayoutProperty(l.id,'visibility','none');}
   map.setPaintProperty('background','background-color','#eef0ea');map.setPaintProperty('water','fill-color','#bcd9e8');
   map.setPaintProperty('boundary_2','line-color','#c7cbc4');map.setPaintProperty('boundary_2','line-width',.7);
   for(const id of ['label_country_1','label_country_2']){map.setPaintProperty(id,'text-color','#9aa39c');map.setPaintProperty(id,'text-halo-width',0);}
+  // lotnisko z bliska: prawdziwe pasy, drogi kołowania, płyty i budynki z OpenStreetMap
+  for(const id of ['building','aeroway-taxiway','aeroway-runway-casing','aeroway-area','aeroway-runway','highway_minor','highway_major_inner','highway_motorway_inner'])map.setLayerZoomRange(id,10.5,24);
+  for(const id of ['highway_minor','highway_major_inner','highway_motorway_inner'])map.setPaintProperty(id,'line-color','#dfe2dc');
+  map.setPaintProperty('building','fill-color','#d0d4da');map.setPaintProperty('building','fill-outline-color','#b4bac3');
+  map.setPaintProperty('aeroway-taxiway','line-color','#bfc4cc');map.setPaintProperty('aeroway-runway-casing','line-color','#c9cdd3');
+  map.setPaintProperty('aeroway-runway','line-color','#8f96a1');map.setPaintProperty('aeroway-area','fill-color','#a3aab4');
+  map.addLayer({id:'apron',type:'fill',source:'openmaptiles','source-layer':'aeroway',minzoom:10.5,filter:['all',['==',['get','class'],'apron'],['==',['geometry-type'],'Polygon']],paint:{'fill-color':'#d6d9de'}},'aeroway-taxiway');
+  map.addLayer({id:'rwy-mark',type:'line',source:'openmaptiles','source-layer':'aeroway',minzoom:12.5,filter:['all',['==',['get','class'],'runway'],['==',['geometry-type'],'LineString']],paint:{'line-color':'#fff','line-width':1.2,'line-dasharray':[7,7]}});
   map.addSource('night',{type:'geojson',data:NIGHT(4)});
   map.addLayer({id:'night',type:'fill',source:'night',paint:{'fill-color':'#050b1c','fill-opacity':.034,'fill-antialias':false}});
+  // nocą: światła krawędzi pasa, niebieskie światła dróg kołowania, poświata płyty
+  const RW=['interpolate',['exponential',1.5],['zoom'],11,4,17,50],ae=(c,g)=>['all',['==',['get','class'],c],['==',['geometry-type'],g]];
+  map.addLayer({id:'apron-glow',type:'fill',source:'openmaptiles','source-layer':'aeroway',minzoom:11,layout:{visibility:'none'},filter:ae('apron','Polygon'),paint:{'fill-color':'#ffd98a','fill-opacity':.2}});
+  map.addLayer({id:'twy-lights',type:'line',source:'openmaptiles','source-layer':'aeroway',minzoom:12.5,layout:{visibility:'none','line-cap':'round'},filter:ae('taxiway','LineString'),paint:{'line-color':'#6fb0ff','line-width':2.2,'line-dasharray':[.01,4]}});
+  map.addLayer({id:'rwy-lights',type:'line',source:'openmaptiles','source-layer':'aeroway',minzoom:11,layout:{visibility:'none','line-cap':'round'},filter:ae('runway','LineString'),paint:{'line-color':'#fff4c8','line-width':['interpolate',['linear'],['zoom'],11,1.5,16,4],'line-gap-width':RW,'line-dasharray':[.01,2.4]}});
   map.addSource('aw',{type:'geojson',data:fc([])});
   map.addLayer({id:'aw',type:'circle',source:'aw',layout:{visibility:'none'},paint:{'circle-color':brand,'circle-opacity':.34,'circle-blur':.7,
     'circle-radius':['interpolate',['linear'],['zoom'],3,['*',['get','a'],34],6,['*',['get','a'],120]]}});
@@ -332,10 +362,15 @@ map.on('load',()=>{
     'icon-size':['interpolate',['linear'],['zoom'],3,['match',['get','o'],'rival',.52,'new',1,.72],6,['match',['get','o'],'rival',.9,'new',1.5,1.2]]};
   map.addLayer({id:'shadows',type:'symbol',source:'planes',layout:{...common,'icon-image':['concat','sh-',['get','k']]},paint:{'icon-opacity':.22,'icon-translate':[4,6]}});
   map.addLayer({id:'planes',type:'symbol',source:'planes',layout:{...common,'icon-image':['concat',['get','o'],'-',['get','k']]}});
+  // samoloty stojące na płycie, w skali zbliżonej do prawdziwej
+  map.addSource('parked',{type:'geojson',data:fc([])});
+  const pk={'icon-rotate':['get','b'],'icon-rotation-alignment':'map','icon-allow-overlap':true,'icon-ignore-placement':true,'icon-size':['interpolate',['exponential',2],['zoom'],11.5,.19,17,8.6]};
+  map.addLayer({id:'parked-sh',type:'symbol',source:'parked',minzoom:11.5,layout:{...pk,'icon-image':['concat','sh-',['get','k']]},paint:{'icon-opacity':.25,'icon-translate':[2,3]}});
+  map.addLayer({id:'parked',type:'symbol',source:'parked',minzoom:11.5,layout:{...pk,'icon-image':['concat','me-',['get','k']]}});
 
   map.on('click','routes-hit',e=>{e.originalEvent.hit=1;select(e.features[0].properties.to);});
   map.on('click',e=>{if(!e.originalEvent.hit)closeSheet();});
-  map.on('move',()=>{syncLights();declutter();});map.on('idle',declutter);map.on('resize',()=>{lights.resize();syncLights();});
+  map.on('move',()=>{syncLights();declutter();document.getElementById('lights').style.opacity=Math.max(0,Math.min(1,(10.5-map.getZoom())/2.5));});map.on('idle',declutter);map.on('resize',()=>{lights.resize();syncLights();});
   const nat=a=>a.code==='KTW'?-1:calc(a.code,1,1,TYPES.AT76).natural;
   for(const a of [...AP].sort((x,y)=>nat(y)-nat(x))){const el=document.createElement('div');el.className='ap';
     el.innerHTML=`<i class="ring"></i><i class="core"></i><span class="lbl"><b>${a.code}</b><em></em></span>`;
@@ -374,7 +409,7 @@ function tick(ts){const dt=Math.min(120,ts-lastTs||16);lastTs=ts;const dmin=dt*s
   const t=gm%1440,day=Math.floor(gm/1440),utc=((t/60-1)%24+24)%24;
   document.getElementById('time').textContent=hm(t);
   if(frame%2===0){map.getSource('night').setData(NIGHT(utc));maskLights(utc);}
-  if(frame%8===0){const nt=sunAlt(utc,BASE.ll)>-4?'day':'night';if(nt!==tod){tod=nt;phone.dataset.tod=nt;document.getElementById('sky').innerHTML=nt==='day'?SUN:MOON;}}
+  if(frame%8===0){const nt=sunAlt(utc,BASE.ll)>-4?'day':'night';if(nt!==tod){tod=nt;phone.dataset.tod=nt;document.getElementById('sky').innerHTML=nt==='day'?SUN:MOON;for(const l of ['apron-glow','twy-lights','rwy-lights'])map.setLayoutProperty(l,'visibility',nt==='night'?'visible':'none');}}
   const P=[],TR=[];
   for(const f of flights){const s=stateAt(f,t),id=day*1000+s.k*4+s.seg;
     if(f.last>=0&&id!==f.last&&f.o==='me'&&((s.seg===1&&f.s.seg===0)||(s.seg===3&&f.s.seg===2))){const c=rc(f.r),rev=c.pax/f.r.rot*c.price;cash+=rev;
@@ -402,7 +437,65 @@ function leg(f){const s=f.s,X=f.r.to,n=by[X];if(!s)return null;
   if(s.seg===2)return {a:X,b:'KTW',dep:s.land-f.fm,arr:s.land,fr:s.f,txt:`Wraca do bazy, ląduje o ${hm(s.land)}`};
   if(s.seg===1)return {a:X,b:'KTW',dep:s.next,arr:s.next+f.fm,fr:0,txt:`Obsługa na ziemi (${n.name}), odlot o ${hm(s.next)}`};
   return s.next!=null?{a:'KTW',b:X,dep:s.next,arr:s.next+f.fm,fr:0,txt:`W bazie, odlot o ${hm(s.next)}`}:{a:'KTW',b:X,fr:0,txt:'W bazie, na dziś koniec lotów'};}
+let apView=null, stands=null, standTry=0, apFly=false;
+function leaveAp(){if(!apView)return;apView=null;stands=null;phone.classList.remove('apview');if(ready)map.getSource('parked').setData(fc([]));}
+// stanowiska postojowe: największa płyta przy lotnisku, rząd punktów wewnątrz niej, nos od strony przeciwnej do pasa
+function findStands(code){const c=by[code].ll,fs=map.querySourceFeatures('openmaptiles',{sourceLayer:'aeroway'});
+  const first=f=>f.geometry.type==='Polygon'?f.geometry.coordinates[0][0]:f.geometry.type==='LineString'?f.geometry.coordinates[0]:null,near=f=>{const q=first(f);return q&&dist(q,c)<5;};
+  let best=null,ba=0;for(const f of fs){if(f.properties.class!=='apron'||f.geometry.type!=='Polygon'||!near(f))continue;const r=f.geometry.coordinates[0];let a=0;
+    for(let i=0;i<r.length-1;i++)a+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];a=Math.abs(a);if(a>ba){ba=a;best=r;}}
+  if(!best)return null;
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const q of best){x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1]);}
+  const ins=(x,y)=>{let k=false;for(let i=0,j=best.length-1;i<best.length;j=i++){const a=best[i],b=best[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])k=!k;}return k;};
+  const wide=(x1-x0)*Math.cos(rad(c[1]))>(y1-y0),sx=wide?.0015:.0005,sy=wide?.00035:.00095,rows={};
+  for(let x=x0+sx/2;x<x1;x+=sx)for(let y=y0+sy/2;y<y1;y+=sy)if(ins(x,y)&&ins(x-sx*.3,y)&&ins(x+sx*.3,y)&&ins(x,y-sy*.3)&&ins(x,y+sy*.3)){const k=wide?y.toFixed(5):x.toFixed(5);(rows[k]=rows[k]||[]).push([x,y]);}
+  const row=Object.values(rows).sort((a,b)=>b.length-a.length)[0];if(!row||row.length<2)return null;
+  const rw=fs.find(f=>f.properties.class==='runway'&&f.geometry.type==='LineString'&&near(f)),rp=rw?rw.geometry.coordinates[0]:[c[0]+1,c[1]+1];
+  const b=wide?(rp[1]>row[0][1]?180:0):(rp[0]>row[0][0]?270:90);return row.map(ll=>({ll,b}));}
+function hereNow(code){return fleet.filter(pl=>{if(code==='KTW'){if(!pl.to)return true;const f=flights.find(x=>x.o==='me'&&x.key===pl.to);return f&&f.s&&f.s.seg===3;}
+  if(pl.to!==code)return false;const f=flights.find(x=>x.o==='me'&&x.key===code);return f&&f.s&&f.s.seg===1;});}
+function apLive(){
+  if(!apFly&&(!stands||stands.fb)){const s2=frame%15===0?findStands(apView):null;if(s2){stands=s2;const m=s2[Math.floor(s2.length/2)].ll,c=by[apView].ll;map.easeTo({center:[(m[0]*2+c[0])/3,(m[1]*2+c[1])/3],offset:[0,-sheet.offsetHeight/2+44],zoom:13.7,duration:900});}
+    else if(!stands&&++standTry>40){const c=by[apView].ll;stands=Array.from({length:8},(_,i)=>({ll:[c[0]+(i-3.5)*.0015,c[1]-.0034],b:0}));stands.fb=true;}}
+  const here=hereNow(apView);
+  if(stands)map.getSource('parked').setData(fc(here.map(pl=>{const st=stands[fleet.indexOf(pl)%stands.length];return {type:'Feature',properties:{k:TYPES[pl.type].kind,b:st.b},geometry:{type:'Point',coordinates:st.ll}};})));
+  const e=body.querySelector('#apList');if(e)e.innerHTML=here.length?`<p class="note" style="margin-bottom:8px">Na płycie stoi <b>${here.length}</b> z Twoich samolotów.</p><div class="apgrid">`+here.map(pl=>`<div><b>${pl.reg}</b> ${TYPES[pl.type].name}<span data-live="${pl.reg}"></span></div>`).join('')+`</div>`
+    :`<p class="note">Żadnego z Twoich samolotów nie ma teraz na płycie.</p>`;}
+function airportView(code){const a=by[code];apView=code;stands=null;standTry=0;sel=null;view='airport';phone.classList.add('apview');
+  openSheet(`<div class="hd"><div><h2>${a.name}</h2><p>${a.code} · widok lotniska · prawdziwy układ pasów i płyt</p></div>${X}</div><div id="apList"></div><button class="go sec" id="pBack">Wróć do mapy</button>`,false,true);
+  q('#pBack').onclick=closeSheet;mapState();
+  apFly=true;requestAnimationFrame(()=>{map.flyTo({center:a.ll,zoom:13.7,offset:[0,-sheet.offsetHeight/2+44],duration:3400,curve:1.5,essential:true});map.once('moveend',()=>{apFly=false;});});}
+
+// karta lotniska: zakładki, informacje, konkurencja, baza
+function segHtml(code,tab){return `<div class="seg">`+[['trasa',code==='KTW'?'Trasy':'Trasa'],['info','Lotnisko'],['rywale','Konkurencja']].map(([k,l])=>`<button data-tab="${k}" class="${k===tab?'on':''}">${l}</button>`).join('')+`</div>`;}
+function infoHtml(code){const a=by[code],[rwy,pax]=INFO[code],big=pax>=25,mid=pax>=8,fee=big?95:mid?60:28,bc=big?9:mid?4.8:2.4,bw=big?140:mid?70:35,r=routeTo(code),row=(l,v)=>`<div class="sum"><span>${l}</span><b>${v}</b></div>`;
+  let h=`<div class="stats"><div><b>${String(pax).replace('.',',')}</b><span>mln pasażerów rocznie</span></div><div><b>${num(rwy)} m</b><span>najdłuższy pas</span></div><div><b>${fee} zł</b><span>opłat za pasażera</span></div></div>`
+    +row('Ludzie w 90 minut dojazdu',a.catch.toLocaleString('pl-PL')+' mln')+row('Wolne terminy lotów',big?'tylko poza szczytem':mid?'ograniczone rano':'bez ograniczeń')
+    +row('Największy samolot',rwy>=2300?'każdy z rynku':rwy>=1900?'do A320neo':'tylko turbośmigłowe')+row('Sezon',a.tour>1.4?'szczyt latem, zimą pusto':'ruch równy cały rok')
+    +row('Znają Twoją linię',Math.round(aw[code]*100)+'%');
+  if(code==='KTW')h+=`<div class="box"><span class="t">Twoja baza główna</span>Nocuje tu ${fleet.length} samolotów. Stąd startują wszystkie Twoje trasy.</div>`;
+  else if(bases.has(code))h+=`<div class="box"><span class="t">Twoja baza</span>Samoloty mogą tu nocować i latać stąd na własne trasy.</div>`;
+  else h+=`<div class="box"><span class="t">Baza na tym lotnisku</span>Samoloty mogłyby tu nocować i latać stąd na własne trasy. Otwarcie kosztuje ${String(bc).replace('.',',')} mln zł (hangar, załogi), potem ${bw} tys. zł tygodniowo.${r?'':' Najpierw otwórz trasę do tego lotniska.'}
+      <button class="go" id="pBase" data-c="${bc}" style="margin-top:10px" ${r&&cash>=bc*1e6?'':'disabled'}>Otwórz bazę · ${String(bc).replace('.',',')} mln zł</button></div>`;
+  return h+`<button class="go sec" id="pZoom">Zobacz lotnisko z bliska</button><p class="fine">Liczby o lotnisku są przybliżone.</p>`;}
+function rivalHtml(code){const a=by[code],other=(x)=>x[0]===code?x[1]:x[0],here=RIVAL.filter(x=>x[0]===code||x[1]===code);let h='';
+  if(code!=='KTW'){const direct=here.filter(x=>other(x)==='KTW'),r=routeTo(code),p0=Math.round(120+dist(BASE.ll,a.ll)*.16);
+    h+=`<div class="box"><span class="t">Na trasie z Katowic</span>`+(direct.length?direct.map(x=>`Lata tu też <b>${AIRL[x[2]].n}</b>: 1 lot dziennie, bilet około ${Math.round(p0*.92)} zł${r?` (Twój: ${Math.round(rc(r).price)} zł)`:''}.`).join(' '):`Nikt inny nie lata z Katowic do ${a.gen}.`);
+    const nb=RIVAL.filter(x=>(x[0]==='KRK'&&x[1]===code)||(x[1]==='KRK'&&x[0]===code));
+    if(nb.length)h+=` Z sąsiedniego Krakowa lata <b>${nb.map(x=>AIRL[x[2]].n).join(', ')}</b>, a to ta sama okolica i ci sami pasażerowie.`;h+=`</div>`;}
+  const byA={};for(const x of here)(byA[x[2]]=byA[x[2]]||[]).push(by[other(x)].name);
+  const keys=Object.keys(byA);
+  h+=keys.length?keys.map(k=>`<div class="rowl" style="cursor:default"><div class="c">${AIRL[k].n.slice(0,3).toUpperCase()}</div><div class="m"><b>${AIRL[k].n}</b><span>${AIRL[k].t}</span><span style="white-space:normal">Stąd do: ${byA[k].join(', ')}</span></div></div>`).join('')
+    :`<p class="note">Żadna inna linia w grze nie ma tu tras. Wolne pole.</p>`;
+  if(INFO[code][1]>=25&&code!=='WAW')h+=`<p class="note">To duży port przesiadkowy. Miejscowy przewoźnik narodowy trzyma tu większość terminów lotów.</p>`;
+  return h;}
+function bindAp(code){body.querySelectorAll('.seg [data-tab]').forEach(b=>b.onclick=()=>select(code,b.dataset.tab));
+  if(q('#pZoom'))q('#pZoom').onclick=()=>airportView(code);
+  if(q('#pBase'))q('#pBase').onclick=()=>{cash-=(+q('#pBase').dataset.c)*1e6;bases.add(code);fx(by[code].ll,'',true);toast(`${by[code].name} jest teraz Twoją drugą bazą. W mockupie baza tylko się zaznacza.`);select(code,'info');};}
+function showBase(tab){sel='KTW';view='ap';if(tab==='trasa'){showRoutes(true);return;}
+  openSheet(`<div class="hd"><div><h2>Katowice</h2><p>KTW · Twoja baza główna</p></div>${X}</div>`+segHtml('KTW',tab)+(tab==='info'?infoHtml('KTW'):rivalHtml('KTW')));bindAp('KTW');mapState();}
 function live(){
+  if(apView)apLive();
   body.querySelectorAll('[data-live]').forEach(e=>{const p=fleet.find(x=>x.reg===e.dataset.live),f=p&&p.to&&flights.find(q=>q.o==='me'&&q.key===p.to),l=f&&leg(f);
     e.textContent=l?l.txt:'Wolny, stoi w bazie';});
   const pr=body.querySelector('.prog');if(!pr||!sel)return;const f=flights.find(q=>q.o==='me'&&q.key===sel),l=f&&leg(f);if(!l)return;
@@ -413,14 +506,14 @@ function live(){
 function mapState(){
   const w=weekTotal();document.getElementById('weekly').innerHTML=`tydzień <span class="${pn(w)}">${sgn(w)} tys. zł</span>`;
   if(!ready)return;
-  map.getSource('routes').setData(routesFC());
+  map.getSource('routes').setData(routesFC());map.setPaintProperty('routes','line-opacity',apView?.18:.9);
   map.setFilter('routes-glow',['==',['get','to'],sel&&routeTo(sel)?sel:'']);
   for(const l of ['rail-a','rail-b'])map.setLayoutProperty(l,'visibility',sel==='WAW'?'visible':'none');
   map.getSource('preview').setData(fc(sel&&sel!=='KTW'&&!routeTo(sel)?[line(arcTo(sel))]:[]));
   const order=[];
   for(const a of AP){const el=apM[a.code],r=routeTo(a.code),base=a.code==='KTW';
     const off=offer.shown&&!offer.accepted&&a.code===offer.code&&!r;
-    el.className='ap'+(base?' base':r?' served':'')+(sel===a.code?' sel':'')+(off?' offer':'');
+    el.className='ap'+(base?' base':r?' served':'')+(sel===a.code?' sel':'')+(off?' offer':'')+(!base&&bases.has(a.code)?' base2':'');
     const ring=el.children[0],core=el.children[1],lbl=el.children[2],em=lbl.children[1];let top=base?13:r?10:8,show=base||!!r||sel===a.code,score=0;
     em.className='';em.textContent='';ring.style.cssText='';core.style.cssText='';
     if(!base){const c=r?rc(r):calc(a.code,1,1,TYPES.AT76);score=c.air;
@@ -439,12 +532,12 @@ function recolor(c){brand=c;document.documentElement.style.setProperty('--brand'
 
 // ================= ARKUSZ =================
 const X='<button class="x" id="sx"><svg viewBox="0 0 13 13"><path d="M2 2l9 9M11 2l-9 9"/></svg></button>';
-function openSheet(html,tall){fillFn=null;body.innerHTML=html;sheet.classList.toggle('tall',!!tall);sheet.classList.add('open');dock.classList.add('hide');body.scrollTop=0;
+function openSheet(html,tall,keepAp){if(!keepAp)leaveAp();fillFn=null;body.innerHTML=html;sheet.classList.toggle('tall',!!tall);sheet.classList.add('open');dock.classList.add('hide');body.scrollTop=0;
   const x=body.querySelector('#sx');if(x)x.onclick=closeSheet;}
-function closeSheet(){if(!sheet.classList.contains('open'))return;sheet.classList.remove('open');dock.classList.remove('hide');const had=sel;sel=null;view=null;mapState();if(had)overview();}
+function closeSheet(){if(!sheet.classList.contains('open'))return;sheet.classList.remove('open');dock.classList.remove('hide');const had=sel||apView;leaveAp();sel=null;view=null;mapState();if(had)overview(had===true?700:1400);}
 const q=s=>body.querySelector(s);
-function select(code){sel=code;view='ap';
-  if(code==='KTW'){showRoutes(true);return;}
+function select(code,tab='trasa'){sel=code;view='ap';
+  if(code==='KTW'){showBase(tab);return;}
   const a=by[code],r=routeTo(code),free=freePlanes()[0],T=TYPES[r?r.plane.type:free?free.type:'AT76'],c=r?rc(r):calc(code,1,1,T),fm=flightMin(c.d,T);
   const land=a.land?`Z <b>${num(c.natural)}</b> osób dziennie ${a.land>=.5?'aż ':''}<b>${num(c.natural*a.land)}</b> wybiera ${a.by}. Samolotem chce lecieć <b>${num(c.air)}</b>.`
     :`<b>${num(c.natural)}</b> osób dziennie chce tu lecieć z Katowic. Lądem nikt nie jedzie, za daleko.`;
@@ -452,8 +545,9 @@ function select(code){sel=code;view='ap';
   const pct=Math.round(aw[code]*100),camp=aw[code]<.99?`<button class="go sec" id="pCamp">Kampania w mieście · 60 tys. zł</button>`:'';
   const ob=offer.shown&&code===offer.code?(offer.accepted?`<div class="offerbox"><span class="t">Umowa z lotniskiem i samorządem</span>Dopłata ${offer.sub} zł do każdego pasażera i brak opłat lotniskowych przez rok.</div>`
     :`<div class="offerbox"><span class="t">Oferta lotniska i samorządu</span>Dopłacimy <b>${offer.sub} zł do każdego pasażera</b> i zniesiemy opłaty lotniskowe na rok, jeśli będziesz latać stąd codziennie.<button class="go" id="pOffer" style="margin-top:10px">Przyjmij ofertę</button></div>`):'';
-  let h=`<div class="hd"><div><h2>${a.name}</h2><p>${a.code} · ${num(c.d)} km · ${dur(fm)} lotu · zlewnia ${a.catch.toLocaleString('pl-PL')} mln</p></div>${X}</div>`+ob;
-  if(r) h+=`<div class="prog"><div><b data-k="c1"></b><span data-k="t1"></span></div><div class="tr"><i data-k="bar"></i><svg viewBox="0 0 24 24" data-k="pl"><path d="${TOP[T.kind][0]}"/></svg></div><div class="r"><b data-k="c2"></b><span data-k="t2"></span></div></div>
+  let h=`<div class="hd"><div><h2>${a.name}</h2><p>${a.code} · ${num(c.d)} km · ${dur(fm)} lotu · zlewnia ${a.catch.toLocaleString('pl-PL')} mln</p></div>${X}</div>`+ob+segHtml(code,tab);
+  if(tab!=='trasa')h+=(tab==='info'?infoHtml(code):rivalHtml(code));
+  else if(r) h+=`<div class="prog"><div><b data-k="c1"></b><span data-k="t1"></span></div><div class="tr"><i data-k="bar"></i><svg viewBox="0 0 24 24" data-k="pl"><path d="${TOP[T.kind][0]}"/></svg></div><div class="r"><b data-k="c2"></b><span data-k="t2"></span></div></div>
     <div class="status" data-k="st"></div>
     <div class="ac">${sil(r.plane.type)}<div><div class="n">${T.maker} ${T.name}</div><div class="s">${r.plane.reg} · ${T.seats} miejsc</div></div></div>
     <div class="stats"><div><b data-k="lf"></b><span>wypełnienie</span></div><div><b data-k="pax"></b><span>pasażerów dziennie</span></div><div><b data-k="profit"></b><span>tys. zł tygodniowo</span></div></div>
@@ -467,15 +561,15 @@ function select(code){sel=code;view='ap';
       +(far?`<p class="note"><b class="neg">Za daleko</b> dla ${T.maker} ${T.name} (zasięg ${num(T.range)} km). Potrzebny większy samolot.</p><button class="go" id="pBuy">Zobacz rynek samolotów</button>`
         :free?`<div class="ac">${sil(free.type)}<div><div class="n">${T.maker} ${T.name}</div><div class="s">${free.reg} czeka w bazie</div></div></div><button class="go" id="pOpen">Otwórz trasę</button>`
         :`<p class="note">Wszystkie samoloty latają. Żeby otworzyć tę trasę, potrzebujesz kolejnego.</p><button class="go" id="pBuy">Zobacz rynek samolotów</button>`);}
-  if(!r)h+=camp;
-  openSheet(h);
+  if(!r&&tab==='trasa')h+=camp;
+  openSheet(h);bindAp(code);
   if(q('#pCamp'))q('#pCamp').onclick=()=>{const o=aw[code];aw[code]=Math.min(1,o+.35);cash-=60000;fx(a.ll,'',true);
     toast(`Kampania ruszyła. ${a.name}: linię zna już ${Math.round(aw[code]*100)}% ludzi (było ${Math.round(o*100)}%).`);select(code);};
   if(q('#pOffer'))q('#pOffer').onclick=()=>{offer.accepted=true;toast('Umowa z Rzeszowem podpisana: dopłata do pasażera i rok bez opłat.');select(code);};
   if(q('#pBuy'))q('#pBuy').onclick=()=>showFleet('rynek');
   if(q('#pOpen'))q('#pOpen').onclick=()=>{const p=freePlanes()[0];p.to=code;routes.push({to:code,rot:1,pm:1,plane:p,grow:0});buildFlights();select(code);};
   if(q('#pClose'))q('#pClose').onclick=()=>{r.plane.to=null;routes=routes.filter(x=>x!==r);buildFlights();select(code);};
-  if(r){const fill=()=>{const c=rc(r),set=(k,v,cl)=>{const e=q(`[data-k=${k}]`);e.innerHTML=v;if(cl)e.className=cl;};
+  if(r&&tab==='trasa'){const fill=()=>{const c=rc(r),set=(k,v,cl)=>{const e=q(`[data-k=${k}]`);e.innerHTML=v;if(cl)e.className=cl;};
       set('aw',Math.round(aw[code]*100)+'%');set('lf',Math.round(c.lf*100)+'%');set('pax',num(c.pax*2));set('profit',sgn(c.profit),pn(c.profit));set('price',Math.round(c.price)+' zł');set('rot',r.rot);
       set('hint',c.lf>.995&&c.unmet>5?`<b>${num(c.unmet)}</b> chętnych dziennie zostaje na ziemi.`:c.lf<.6?'Samoloty latają w połowie puste.':'');mapState();};
     fill();fillFn=fill;live();
@@ -485,10 +579,10 @@ function select(code){sel=code;view='ap';
   requestAnimationFrame(()=>{const A=a.ll,B=BASE.ll;map.fitBounds(new maplibregl.LngLatBounds([Math.min(A[0],B[0]),Math.min(A[1],B[1])],[Math.max(A[0],B[0]),Math.max(A[1],B[1])]),
     {padding:{top:110,bottom:sheet.offsetHeight+34,left:56,right:56},maxZoom:4.9,duration:700});});}
 function showRoutes(fromBase){view='routes';if(!fromBase)sel=null;const w=weekTotal();
-  openSheet(`<div class="hd"><div><h2>${fromBase?'Katowice':'Trasy'}</h2><p>${fromBase?'KTW · Twoja baza · 4,6 mln ludzi w 90 minut dojazdu':routes.length+' tras z Katowic'}</p></div>${X}</div>`
+  openSheet(`<div class="hd"><div><h2>${fromBase?'Katowice':'Trasy'}</h2><p>${fromBase?'KTW · Twoja baza · 4,6 mln ludzi w 90 minut dojazdu':routes.length+' tras z Katowic'}</p></div>${X}</div>`+(fromBase?segHtml('KTW','trasa'):'')
     +routes.map(r=>{const c=rc(r),T=TYPES[r.plane.type];return `<div class="rowl" data-to="${r.to}"><div class="c">${r.to}</div><div class="m"><b>${by[r.to].name}</b><span data-live="${r.plane.reg}"></span></div><div class="v ${pn(c.profit)}">${sgn(c.profit)} tys.</div></div>`;}).join('')
     +`<div class="sum t"><span>Razem, po ratach leasingu</span><b class="${pn(w)}">${sgn(w)} tys. zł</b></div>`,routes.length>5);
-  body.querySelectorAll('.rowl').forEach(d=>d.onclick=()=>select(d.dataset.to));live();mapState();}
+  body.querySelectorAll('.rowl').forEach(d=>d.onclick=()=>select(d.dataset.to));if(fromBase)bindAp('KTW');live();mapState();}
 let fleetTab='moja';
 function showFleet(tab){fleetTab=tab;view='fleet';sel=null;
   let h=`<div class="hd"><div><h2>Flota</h2><p>${fleet.length} samolotów${freePlanes().length?', wolnych: '+freePlanes().length:', wszystkie latają'}</p></div>${X}</div>
