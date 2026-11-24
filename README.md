@@ -3,8 +3,8 @@
 Symulator linii lotniczej na prawdziwej mapie: prawdziwe lotniska, prawdziwe miasta,
 popyt wynikający z prawdziwej geografii.
 
-Stan (2026-11-24): **faza 0 gotowa, faza 1 w toku.** Działa aplikacja z mapą Europy, dniem i nocą,
-685 prawdziwymi lotniskami i widokiem popytu policzonym z prawdziwych danych. Rozgrywki jeszcze nie ma.
+Stan (2026-11-24): **pierwsza grywalna pętla.** Mapa świata z dniem i nocą, 1191 prawdziwych lotnisk,
+popyt policzony z prawdziwych danych, trasy, flota w leasingu, finanse i zapis gry. Wersja 0.2.0.
 Repozytorium: github.com/maloxik/airline (prywatne, gałąź `main`). Gra jest na telefon: buduje się do pliku APK.
 
 ## Uruchomienie
@@ -27,7 +27,7 @@ npm run dev
 
 | Miejsce | Co tam jest |
 |---|---|
-| `src/sim/` | rdzeń gry: geografia, słońce, zegar, typy danych świata. Czysty TypeScript, bez przeglądarki i bez mapy, z testami |
+| `src/sim/` | rdzeń gry: geografia, słońce, zegar, dane świata, popyt, linia lotnicza (flota, trasy, pieniądze). Czysty TypeScript, bez przeglądarki i bez mapy, z testami |
 | `src/app/` | aplikacja: mapa (MapLibre) i interfejs (React) |
 | `tools/data/` | skrypty budujące dane świata z prawdziwych źródeł |
 | `public/data/world.json` | zbudowana paczka danych, trzymana w repozytorium |

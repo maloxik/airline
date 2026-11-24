@@ -17,6 +17,7 @@ const YEAR = 2023;
 // Europa z okolicami: od Azorów po Kaukaz, od Wysp Kanaryjskich po Spitsbergen.
 const BOX = { latMin: 27, latMax: 72, lngMin: -32, lngMax: 50 };
 const EUROSTAT = 'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/';
+const WORLD_MIN_RUNWAY_M = 3000;
 const ROUTE_REPORTERS = 'be bg cz dk de ee ie el es fr hr it cy lv lt lu hu mt nl at pl pt ro si sk fi se is no ch'.split(' ');
 
 await mkdir(CACHE, { recursive: true });
@@ -127,7 +128,8 @@ for (const a of oaAirports) {
   if (a.scheduled_service !== 'yes' || !/^[A-Z]{3}$/.test(a.iata_code)) continue;
   const lat = Number(a.latitude_deg);
   const lng = Number(a.longitude_deg);
-  if (!inBox(lat, lng)) continue;
+  // Europa z okolicami: duże i średnie lotniska. Reszta świata: tylko duże, z pasem co najmniej 3000 m.
+  if (!inBox(lat, lng) && (a.type !== 'large_airport' || (longest.get(a.ident) ?? 0) < WORLD_MIN_RUNWAY_M)) continue;
   airports.push({
     iata: a.iata_code,
     icao: a.ident,
@@ -155,7 +157,7 @@ for (const lineTxt of citiesTxt.split('\n')) {
   const lat = Number(c[4]);
   const lng = Number(c[5]);
   const pop = Number(c[14]);
-  if (pop > 0 && lat >= BOX.latMin - 2 && lat <= BOX.latMax + 2 && lng >= BOX.lngMin - 2 && lng <= BOX.lngMax + 2) cities.push({ lat, lng, pop });
+  if (pop > 0) cities.push({ lat, lng, pop });
 }
 // Jak chętnie ludzie dojeżdżają na lotnisko z odległości d km: połowa przy 60 km, prawie nikt powyżej 150 km.
 const reach = (d) => 1 / (1 + (d / 60) ** 3);
@@ -173,7 +175,7 @@ for (const c of cities) {
   const ci = Math.floor(c.lat / 2);
   const cj = Math.floor(c.lng / 2);
   for (let i = ci - 1; i <= ci + 1; i++) {
-    for (let j = cj - 2; j <= cj + 2; j++) {
+    for (let j = cj - 3; j <= cj + 3; j++) {
       for (const a of grid.get(`${i}:${j}`) ?? []) {
         const d = km(c.lng, c.lat, a.lng, a.lat);
         if (d < 200) near.push({ a, f: reach(d), w: (a.size === 'L' ? 1.5 : 1) * reach(d) });
@@ -273,7 +275,9 @@ for (const a of airports) {
     a.nightsEstimated = false;
   } else {
     // Ostrożnie: około jednego noclegu rocznie na mieszkańca, mniej w biedniejszych regionach.
-    a.nights = FALLBACK_SEASON.map((s) => Math.round((a.catch * Math.min(1.2, a.wealth / 100) * s) / 12 / 1000));
+    // Na półkuli południowej lato wypada pół roku później.
+    const season = a.lat < -10 ? [...FALLBACK_SEASON.slice(6), ...FALLBACK_SEASON.slice(0, 6)] : FALLBACK_SEASON;
+    a.nights = season.map((s) => Math.round((a.catch * Math.min(1.2, a.wealth / 100) * s) / 12 / 1000));
     a.nightsEstimated = true;
   }
 }
@@ -335,4 +339,5 @@ const show = (iata) => {
   const a = airports.find((x) => x.iata === iata);
   if (a) console.log(`  ${iata}: zlewnia ${(a.catch / 1e6).toFixed(2)} mln (w zasięgu ${(a.catchRaw / 1e6).toFixed(2)}), zamożność ${a.wealth}, region ${a.nuts}, noclegi lipiec ${a.nights[6]} tys., styczeń ${a.nights[0]} tys.${a.nightsEstimated ? ' (szac.)' : ''}`);
 };
-['KTW', 'KRK', 'WAW', 'RDO', 'LHR', 'LTN', 'DTM', 'SPU', 'PMI', 'IST'].forEach(show);
+['KTW', 'WAW', 'LHR', 'DTM', 'SPU', 'IST', 'JFK', 'DXB', 'NRT', 'SYD', 'GRU'].forEach(show);
+console.log(`Poza Europą: ${airports.filter((a) => !inBox(a.lat, a.lng)).length} lotnisk`);

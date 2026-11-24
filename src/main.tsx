@@ -12,16 +12,22 @@ setWorkerUrl('/maplibre/worker.js');
 // Zapasowy zegar utrzymuje ruch, żeby zmianę dało się obejrzeć i sprawdzić. W zbudowanej grze go nie ma.
 if (import.meta.env.DEV) {
   const native = window.requestAnimationFrame.bind(window);
+  const nativeCancel = window.cancelAnimationFrame.bind(window);
+  const cancelled = new Set<number>();
   window.requestAnimationFrame = (cb) => {
     let done = false;
     const run = (t: number): void => {
-      if (done) return;
+      if (done || cancelled.delete(id)) return;
       done = true;
       cb(t);
     };
     const id = native(run);
     setTimeout(() => run(performance.now()), 48);
     return id;
+  };
+  window.cancelAnimationFrame = (id) => {
+    cancelled.add(id);
+    nativeCancel(id);
   };
 }
 

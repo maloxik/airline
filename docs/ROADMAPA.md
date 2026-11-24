@@ -94,6 +94,10 @@ Jeśli kalibracja nie wyjdzie, upraszczamy model, zamiast udawać dokładność.
 
 ## Faza 2: Rdzeń ekonomii (M)
 
+**Stan 2026-11-24: pierwsza wersja jest (`src/sim/airline.ts`, 11 testów).** Flota z sześcioma prawdziwymi
+typami, trasy z bazy, cena i liczba lotów, koszty lotów i leasingu, wynik tygodnia, rozkład dnia.
+Brakuje: rozkręcania nowej trasy w czasie, kredytu, bankructwa, symulacji wieloletnich do balansu.
+
 - Czas gry, flota, trasy, liczba lotów, wykorzystanie samolotu w ciągu doby.
 - Przychód: popyt, cena, wypełnienie, dopłaty. Koszty: paliwo, załoga, opłaty, obsługa, raty.
 - Rozkręcanie nowej trasy w czasie, sezonowość miesiąc po miesiącu.
@@ -104,6 +108,12 @@ Jeśli kalibracja nie wyjdzie, upraszczamy model, zamiast udawać dokładność.
 sztuczka nie daje pieniędzy bez końca.
 
 ## Faza 3: Pierwsza grywalna wersja (L)
+
+**Stan 2026-11-24: pętla działa w aplikacji (APK 0.2.0).** Start z Katowic z jednym ATR i 3 mln zł,
+otwieranie i zamykanie tras z karty lotniska, cena i liczba lotów, samoloty latające po mapie według
+rozkładu, działy Trasy, Flota (leasing z rynku) i Finanse, zapis gry na telefonie.
+Brakuje: ekranu startu z wyborem lotniska i nazwy linii, samouczka, podsumowania tygodnia,
+testu na obcej osobie (bramka).
 
 - Wybór lotniska startowego z prawdziwą kartą okolicy.
 - Otwieranie i zamykanie tras, cena, liczba lotów, podgląd skutków przed decyzją.

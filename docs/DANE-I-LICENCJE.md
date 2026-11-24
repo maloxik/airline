@@ -70,7 +70,7 @@ Paczkę buduje `npm run data` (`tools/data/build-world.mjs`). Pobrane pliki źr�
 
 | Dane | Źródło | Uwagi |
 |---|---|---|
-| Lotniska, pasy | OurAirports | 685 lotnisk Europy i okolic |
+| Lotniska, pasy | OurAirports | 1191 lotnisk: w Europie i okolicach duże i średnie, w reszcie świata tylko duże z pasem od 3000 m |
 | Ludność | GeoNames `cities1000` (CC BY 4.0) | miejscowości powyżej tysiąca mieszkańców; bez dzielnic, żeby nie liczyć podwójnie |
 | Regiony | GISCO, NUTS 2 w skali 1:20 mln | lotnisko na wybrzeżu dostaje najbliższy region swojego kraju |
 | Zamożność | Eurostat `nama_10r_2gdp` (PPS na mieszkańca, Unia = 100), poza Unią Bank Światowy | |

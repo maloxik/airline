@@ -1,10 +1,10 @@
 {
-  "kBusiness": 9857,
-  "kTourism": 3.517,
-  "kVfr": 1518,
+  "kBusiness": 12020,
+  "kTourism": 5.14,
+  "kVfr": 827.6,
   "betaBusiness": 1,
   "betaTourism": 1,
-  "betaVfr": 0.6216,
+  "betaVfr": 0.5476,
   "wealthPower": 0.5,
-  "domesticBoost": 4.812
+  "domesticBoost": 3.91
 }
