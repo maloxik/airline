@@ -158,8 +158,6 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
   const applyTimeOfDay = (tod: TimeOfDay): void => {
     const night = tod === 'night';
     for (const id of ['apron-glow', 'twy-lights', 'rwy-lights']) map.setLayoutProperty(id, 'visibility', night ? 'visible' : 'none');
-    map.setPaintProperty('airport-labels', 'text-color', night ? '#f1f3f7' : '#14161a');
-    map.setPaintProperty('airport-labels', 'text-halo-color', night ? '#0b1326' : '#ffffff');
   };
 
   const tick = (ts: number): void => {
@@ -208,16 +206,29 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       source: 'selected',
       paint: { 'circle-radius': 11, 'circle-color': 'rgba(224,73,47,.18)', 'circle-stroke-color': '#e0492f', 'circle-stroke-width': 2 },
     });
+    // Ciemna podkładka pod każdym lotniskiem: dzięki niej biały punkt nie ginie nocą wśród świateł miast.
+    map.addLayer({
+      id: 'airports-halo',
+      type: 'circle',
+      source: 'airports',
+      maxzoom: 11.5,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, ['match', ['get', 'big'], 1, 5.5, 3.8], 7, ['match', ['get', 'big'], 1, 11, 8]],
+        'circle-color': '#0b1326',
+        'circle-opacity': 0.55,
+        'circle-blur': 0.35,
+      },
+    });
     map.addLayer({
       id: 'airports',
       type: 'circle',
       source: 'airports',
       maxzoom: 11.5,
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, ['match', ['get', 'big'], 1, 2.6, 1.4], 7, ['match', ['get', 'big'], 1, 6, 4]],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, ['match', ['get', 'big'], 1, 3, 1.9], 7, ['match', ['get', 'big'], 1, 6.5, 4.5]],
         'circle-color': '#ffffff',
-        'circle-stroke-color': '#2a2e37',
-        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 3, 0.8, 7, 1.6],
+        'circle-stroke-color': '#14161a',
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 3, 1, 7, 1.8],
       },
     });
     map.addLayer({
@@ -234,7 +245,8 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
         'text-anchor': 'top',
         'symbol-sort-key': ['match', ['get', 'big'], 1, 0, 1],
       },
-      paint: { 'text-color': '#14161a', 'text-halo-color': '#ffffff', 'text-halo-width': 1.3 },
+      // Biały tekst z ciemną obwódką czyta się i na jasnej mapie dnia, i na ciemnej mapie nocy.
+      paint: { 'text-color': '#ffffff', 'text-halo-color': '#14161a', 'text-halo-width': 1.6 },
     });
     map.addLayer({ id: 'airports-hit', type: 'circle', source: 'airports', paint: { 'circle-radius': 16, 'circle-opacity': 0 } });
 

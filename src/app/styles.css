@@ -33,7 +33,8 @@ button {
   --soft: rgba(20, 22, 26, 0.05);
   transition: color 0.8s;
 }
-.game[data-tod='night'] {
+/* Ciemny wariant interfejsu: na razie nieużywany, czeka na opcję w ustawieniach. */
+.game[data-theme='dark'] {
   --glass: rgba(20, 24, 34, 0.78);
   --txt: #f1f3f7;
   --sub: #9099a8;
@@ -206,6 +207,50 @@ button {
 .note {
   margin: 0;
   font: 400 14.5px/1.42 var(--f);
+}
+
+.dock {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 6;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 26px;
+}
+.dock.hide {
+  transform: translate(-50%, 160%);
+}
+.dock button {
+  all: unset;
+  cursor: pointer;
+  width: 66px;
+  padding: 7px 0 6px;
+  border-radius: 20px;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  font: 600 11px/1 var(--f);
+  color: var(--sub);
+}
+.dock button:active {
+  background: var(--soft);
+}
+.dock svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (max-width: 380px) {
+  .dock button {
+    width: 58px;
+  }
 }
 
 /* Szeroki ekran: karta jako panel z boku, nie arkusz na dole. */
