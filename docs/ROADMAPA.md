@@ -36,6 +36,11 @@ Bramki, na których projekt może się zatrzymać: po fazie 1 (czy dane mają se
 
 ## Faza 0: Decyzje i fundament (S)
 
+**Stan 2026-11-24: zrobione lokalnie, bez zdalnego repozytorium i wdrożenia.**
+Jest projekt TypeScript (Vite, React, MapLibre), rdzeń `src/sim` z testami, aplikacja z mapą
+Europy, dniem i nocą, światłami miast i 685 prawdziwymi lotniskami z OurAirports (pierwszy
+kawałek fazy 1). Zostało: założyć repozytorium na GitHubie i projekt na Vercelu.
+
 - Zatwierdzić otwarte decyzje z projektu gry (platformy, stos, zasięg mapy, czas gry).
 - Repozytorium ze zdalnym adresem, projekt TypeScript, wdrożenie na Vercel po każdym commicie.
 - Podział na moduły: `sim` (symulacja, bez interfejsu), `data` (budowanie paczki danych),

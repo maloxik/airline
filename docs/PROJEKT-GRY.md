@@ -277,7 +277,7 @@ Mapa ma żyć cały czas. Statyczne kropki i linie odpadają.
 | Decyzja | Moja rekomendacja |
 |---|---|
 | Platformy | przeglądarka i Steam główne, telefon trzeci |
-| Stos | TypeScript + MapLibre GL JS, wdrożenie na Vercel |
+| Stos | TypeScript + Vite + React + MapLibre GL JS (przyjęte 2026-11-24, kod w `src/`), wdrożenie na Vercel |
 | Zasięg mapy w wersji 1 | Europa z okolicami (Turcja, Afryka Północna, Kaukaz jako cele) |
 | Czas gry | ciągły z pauzą i przyspieszeniem, rozliczenie co tydzień |
 | Epoka | współczesność, start w roku wydania |
