@@ -36,10 +36,10 @@ Bramki, na których projekt może się zatrzymać: po fazie 1 (czy dane mają se
 
 ## Faza 0: Decyzje i fundament (S)
 
-**Stan 2026-11-24: zrobione lokalnie, bez zdalnego repozytorium i wdrożenia.**
+**Stan 2026-11-24: zrobione, kod jest w repozytorium `maloxik/airline`; brakuje tylko projektu na Vercelu.**
 Jest projekt TypeScript (Vite, React, MapLibre), rdzeń `src/sim` z testami, aplikacja z mapą
 Europy, dniem i nocą, światłami miast i 685 prawdziwymi lotniskami z OurAirports (pierwszy
-kawałek fazy 1). Zostało: założyć repozytorium na GitHubie i projekt na Vercelu.
+kawałek fazy 1). Zostało: zaimportować repozytorium w Vercelu (zespół makrosystem), żeby każda zmiana wdrażała się sama.
 
 - Zatwierdzić otwarte decyzje z projektu gry (platformy, stos, zasięg mapy, czas gry).
 - Repozytorium ze zdalnym adresem, projekt TypeScript, wdrożenie na Vercel po każdym commicie.

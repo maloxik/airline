@@ -5,7 +5,7 @@ popyt wynikający z prawdziwej geografii.
 
 Stan (2026-11-24): **faza 0 z roadmapy gotowa lokalnie.** Działa aplikacja z mapą Europy,
 dniem i nocą, światłami miast i 685 prawdziwymi lotniskami. Rozgrywki jeszcze nie ma.
-Brakuje zdalnego repozytorium i wdrożenia.
+Repozytorium: github.com/maloxik/airline (prywatne, gałąź `main`). Brakuje wdrożenia na Vercelu.
 
 ## Uruchomienie
 
