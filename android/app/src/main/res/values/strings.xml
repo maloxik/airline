@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Airline</string>
+    <string name="title_activity_main">Airline</string>
+    <string name="package_name">pl.makrosystem.airline</string>
+    <string name="custom_url_scheme">pl.makrosystem.airline</string>
+</resources>

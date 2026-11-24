@@ -13,8 +13,7 @@ miastami nie da się szybciej dojechać pociągiem albo samochodem.
 
 ## 2. Podstawowe fakty
 
-- **Urządzenia:** komputer (przeglądarka i Steam, mysz, szeroki ekran) oraz telefon (dotyk, pionowo).
-  Ta sama gra ma działać na obu.
+- **Urządzenie:** telefon trzymany pionowo, obsługa dotykiem. To aplikacja na telefon, nie strona.
 - **Tryb:** jeden gracz, działa bez internetu. Bez liczników czasu, bez waluty premium, bez reklam.
 - **Język:** polski (ze znakami ą ć ę ł ń ó ś ź ż).
 - **Odbiorca:** dorosły, który lubi lotnictwo, mapy i gry ekonomiczne. Chce się czuć jak

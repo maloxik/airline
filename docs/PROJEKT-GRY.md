@@ -17,28 +17,27 @@ Trzy filary:
 2. **Budujesz firmę, a nie tylko trasy.** Flota, marka, ludzie, pieniądze, umowy z lotniskami.
 3. **Jeden gracz, własne tempo.** Bez liczników, bez płacenia za przyspieszenie.
 
-## 2. Platformy
+## 2. Platforma
 
-**Rekomendacja: przeglądarka i Steam jako główne, telefon jako trzecia, wszystko z jednego kodu.**
+**Gra na telefon** (decyzja z 2026-11-24). Bez wersji przeglądarkowej i bez Steama.
 
-| Platforma | Po co | Uwagi |
-|---|---|---|
-| Przeglądarka | darmowe demo, zasięg, szybkie testy po każdej zmianie | zero prowizji sklepu, link wystarczy, żeby zagrać |
-| Steam | główna sprzedaż, płatność jednorazowa | tu jest publiczność gier ekonomicznych, która płaci za grę bez liczników; w 2026 na Steamie wyszło kilka nowych symulatorów linii lotniczych |
-| Telefon | granie w przerwach, ta sama linia co na komputerze | płatne gry sprzedają się tu słabo, więc model „darmowy początek, jednorazowe odblokowanie” |
+- Android najpierw, iOS z tego samego kodu, gdy będzie Mac.
+- Układ pionowy, obsługa jedną ręką. Wzorcem wyglądu i rozgrywki jest mockup `docs/mockup/v6-telefon.html`.
+- Sprzedaż przez sklepy z aplikacjami. Model: darmowy początek i jednorazowe odblokowanie pełnej gry,
+  bez liczników, waluty premium i reklam.
+- Zapis gry lokalnie na telefonie.
 
-To moja ocena rynku, nie wynik badania: nie mam danych o sprzedaży konkurentów.
+**Jak to jest zbudowane.** Gra jest napisana w TypeScripcie (mapa MapLibre, interfejs React)
+i opakowana w zwykłą aplikację na telefon narzędziem Capacitor. Na telefonie instaluje się
+plik APK, a docelowo aplikację ze sklepu. Przeglądarka służy wyłącznie mnie przy pracy,
+do szybkiego podglądu zmian; gracz jej nie widzi i nie potrzebuje.
 
-Co z tego wynika:
+Powód takiego wyboru: wygląd z zaakceptowanego mockupu (prawdziwe światła miast nałożone na
+mapę, płynny zmierzch, półprzezroczyste arkusze) jest zrobiony właśnie w tej technologii,
+więc przenosi się do gry bez przepisywania.
 
-- **Interfejs musi działać na szerokim ekranie z myszą i na telefonie z kciukiem.** Projektowanie
-  wyłącznie pod telefon odpada.
-- **Zmiana stosu technicznego.** Wcześniej proponowałem Kotlin Multiplatform jak w Urzędzie.
-  Przy przeglądarce i Steamie lepszy jest stos webowy: TypeScript, mapa MapLibre GL JS
-  (najdojrzalsza wersja tej biblioteki), wdrożenie na Vercel po każdym commicie.
-  Telefon przez opakowanie tej samej aplikacji (Capacitor), Steam przez opakowanie desktopowe
-  (Tauri albo Electron). Rdzeń symulacji jako osobny moduł bez interfejsu, z testami.
-- Zapis gry lokalnie, z opcjonalnym przenoszeniem między urządzeniami (kod albo konto) później.
+Do rozstrzygnięcia później: mapa i światła nocne są dziś pobierane z internetu. Żeby gra
+działała bez sieci, trzeba je spakować do aplikacji (faza 9).
 
 ## 3. Świat z prawdziwych danych
 
@@ -276,10 +275,10 @@ Mapa ma żyć cały czas. Statyczne kropki i linie odpadają.
 
 | Decyzja | Moja rekomendacja |
 |---|---|
-| Platformy | przeglądarka i Steam główne, telefon trzeci |
-| Stos | TypeScript + Vite + React + MapLibre GL JS (przyjęte 2026-11-24, kod w `src/`), wdrożenie na Vercel |
+| Platforma | telefon (Android, potem iOS); bez przeglądarki i Steama — przyjęte 2026-11-24 |
+| Stos | TypeScript + Vite + React + MapLibre GL JS (przyjęte 2026-11-24, kod w `src/`), opakowane Capacitorem w aplikację na telefon |
 | Zasięg mapy w wersji 1 | Europa z okolicami (Turcja, Afryka Północna, Kaukaz jako cele) |
 | Czas gry | ciągły z pauzą i przyspieszeniem, rozliczenie co tydzień |
 | Epoka | współczesność, start w roku wydania |
-| Model sprzedaży | darmowe demo w przeglądarce, pełna gra płatna raz |
+| Model sprzedaży | darmowy początek w aplikacji, pełna gra odblokowana jednorazowo |
 | Nazwa | do ustalenia |

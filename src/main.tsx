@@ -6,7 +6,7 @@ import './app/styles.css';
 import { App } from './app/App';
 
 // Wątek roboczy mapy leży w public/maplibre (kopiuje go tools/copy-map-worker.mjs), więc działa tak samo w dev i po zbudowaniu.
-setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
+setWorkerUrl('/maplibre/worker.js');
 
 // Tylko w trybie deweloperskim: gdy okno podglądu jest zasłonięte, przeglądarka wstrzymuje klatki animacji.
 // Zapasowy zegar utrzymuje ruch, żeby zmianę dało się obejrzeć i sprawdzić. W zbudowanej grze go nie ma.

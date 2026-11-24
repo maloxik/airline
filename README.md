@@ -5,7 +5,7 @@ popyt wynikający z prawdziwej geografii.
 
 Stan (2026-11-24): **faza 0 z roadmapy gotowa lokalnie.** Działa aplikacja z mapą Europy,
 dniem i nocą, światłami miast i 685 prawdziwymi lotniskami. Rozgrywki jeszcze nie ma.
-Repozytorium: github.com/maloxik/airline (prywatne, gałąź `main`). Brakuje wdrożenia na Vercelu.
+Repozytorium: github.com/maloxik/airline (prywatne, gałąź `main`). Gra jest na telefon: buduje się do pliku APK.
 
 ## Uruchomienie
 
@@ -19,6 +19,7 @@ npm run dev
 | `npm run dev` | aplikacja w trybie deweloperskim |
 | `npm run check` | sprawdzenie typów i testy |
 | `npm run build` | wersja do wdrożenia w `dist/` |
+| `npm run android` | buduje grę i przenosi ją do projektu Androida w `android/` |
 | `npm run data` | pobiera dane OurAirports i buduje od nowa `public/data/world.json` |
 
 ## Struktura
@@ -46,5 +47,15 @@ więc przypadkowe użycie `document` albo mapy w rdzeniu nie przejdzie `npm run 
 ## Stos
 
 TypeScript, Vite, React, MapLibre GL JS. Mapa bazowa z OpenFreeMap (dane OpenStreetMap),
-światła nocne z NASA GIBS, lotniska z OurAirports. Docelowo przeglądarka i Steam jako główne
-platformy, telefon przez opakowanie tej samej aplikacji.
+światła nocne z NASA GIBS, lotniska z OurAirports. Gra jest opakowana w aplikację na telefon
+narzędziem Capacitor (`android/`). Przeglądarka służy tylko do podglądu przy pracy.
+
+## Plik APK
+
+```
+npm run android
+cd android
+./gradlew assembleDebug
+```
+
+Wymaga Javy 21 (`JAVA_HOME`) i Android SDK. Wynik: `android/app/build/outputs/apk/debug/app-debug.apk`.

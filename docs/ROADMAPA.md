@@ -5,7 +5,7 @@ Wersja 2, 2026-11-23. Zastępuje wersję 1 (sześć plastrów pod telefon). Proj
 
 ## Zasady
 
-- Każda faza kończy się czymś, co da się uruchomić w przeglądarce pod linkiem i ocenić.
+- Każda faza kończy się plikiem APK, który instalujesz na telefonie i oceniasz.
 - Najpierw sprawdzamy to, co może wywrócić projekt: czy prawdziwe dane dają wiarygodny popyt
   i czy podstawowa pętla bawi. Dopiero potem dokładamy systemy.
 - Rdzeń symulacji jest osobnym modułem bez interfejsu, z testami. Interfejs można wymienić,
@@ -17,7 +17,7 @@ Wersja 2, 2026-11-23. Zastępuje wersję 1 (sześć plastrów pod telefon). Proj
 
 | Faza | Nazwa | Rozmiar | Wynik |
 |---|---|---|---|
-| 0 | Decyzje i fundament | S | repozytorium, stos, pusta aplikacja pod linkiem |
+| 0 | Decyzje i fundament | S | repozytorium, stos, pusta aplikacja na telefonie |
 | 1 | Prawdziwy świat | L | paczka danych Europy i mapa popytu, którą da się oglądać |
 | 2 | Rdzeń ekonomii | M | symulacja bez interfejsu, zbalansowana w testach |
 | 3 | Pierwsza grywalna wersja | L | jedna baza, trasy, ceny, tydzień po tygodniu |
@@ -26,7 +26,7 @@ Wersja 2, 2026-11-23. Zastępuje wersję 1 (sześć plastrów pod telefon). Proj
 | 6 | Rywale i żywy świat | L | linie sterowane przez grę, zdarzenia, karty decyzji |
 | 7 | Przesiadki i późna gra | M | węzły, program lojalnościowy, przejęcia |
 | 8 | Kariera, scenariusze, samouczek | M | pełna rozgrywka od startu do późnej gry |
-| 9 | Szlif i wydanie | L | demo w przeglądarce, Steam, potem telefon |
+| 9 | Szlif i wydanie | L | Google Play, potem iOS |
 | 10 | Po premierze | — | reszta świata, wyzwanie tygodnia, cargo |
 
 Bramki, na których projekt może się zatrzymać: po fazie 1 (czy dane mają sens) i po fazie 3
@@ -36,10 +36,10 @@ Bramki, na których projekt może się zatrzymać: po fazie 1 (czy dane mają se
 
 ## Faza 0: Decyzje i fundament (S)
 
-**Stan 2026-11-24: zrobione, kod jest w repozytorium `maloxik/airline`; brakuje tylko projektu na Vercelu.**
+**Stan 2026-11-24: zrobione. Kod jest w repozytorium `maloxik/airline`, aplikacja buduje się do pliku APK.**
 Jest projekt TypeScript (Vite, React, MapLibre), rdzeń `src/sim` z testami, aplikacja z mapą
 Europy, dniem i nocą, światłami miast i 685 prawdziwymi lotniskami z OurAirports (pierwszy
-kawałek fazy 1). Zostało: zaimportować repozytorium w Vercelu (zespół makrosystem), żeby każda zmiana wdrażała się sama.
+kawałek fazy 1). Vercel odpadł: gra jest tylko na telefon (decyzja z 2026-11-24), więc testujesz ją z pliku APK.
 
 - Zatwierdzić otwarte decyzje z projektu gry (platformy, stos, zasięg mapy, czas gry).
 - Repozytorium ze zdalnym adresem, projekt TypeScript, wdrożenie na Vercel po każdym commicie.
@@ -150,12 +150,13 @@ różnymi, opłacalnymi strategiami.
 ## Faza 9: Szlif i wydanie (L)
 
 - Dźwięk, animacje, dopracowanie mapy, wydajność na słabszych telefonach.
-- Darmowe demo w przeglądarce (pierwszy etap kariery).
-- Strona na Steamie wcześnie, żeby zbierać listy życzeń; wersja desktopowa; osiągnięcia.
-- Telefon: opakowanie aplikacji, test zamknięty w Google Play.
+- Mapa i światła nocne spakowane do aplikacji, żeby gra działała bez internetu.
+- Ikona, ekran startowy, podpisany plik do sklepu.
+- Test zamknięty w Google Play, strona sklepu, zrzuty, zwiastun.
 - Ekran z atrybucją źródeł danych.
+- iOS, gdy będzie Mac.
 
-**Gotowe, gdy:** gra jest do kupienia na Steamie, a demo działa pod linkiem.
+**Gotowe, gdy:** gra jest do pobrania z Google Play.
 
 ## Faza 10: Po premierze
 
@@ -173,6 +174,6 @@ różnymi, opłacalnymi strategiami.
 | Gra jest arkuszem z mapą, bez frajdy | faza 3 | twarda bramka i test na obcej osobie |
 | Zakres jest za duży na jedną osobę z pomocą AI | cały czas | fazy 4–7 są od siebie niezależne i każdą można przyciąć albo przesunąć za premierę |
 | Zatłoczony rynek | faza 9 | trzymać wyróżniki (prawdziwe dane, oferty samorządów, marka na mapie), nie gonić liderów na liczbę funkcji |
-| Jedna aplikacja na komputer i telefon wymaga dwóch układów interfejsu | faza 3 | projektować oba od początku, mapa wspólna, panele osobne |
+| Wydajność mapy w aplikacji na słabszych telefonach | faza 0 i 3 | sprawdzić na prawdziwym telefonie już teraz, na pierwszym pliku APK |
 | Wydajność mapy na słabszych telefonach | faza 0 i 9 | sprawdzić już przy pustej aplikacji |
 | Licencje danych | faza 1 | wszystkie źródła pozwalają na użytek komercyjny z podaniem źródła; potwierdzić przed wydaniem |

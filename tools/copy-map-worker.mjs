@@ -4,6 +4,5 @@ import { cp, mkdir } from 'node:fs/promises';
 
 const from = 'node_modules/maplibre-gl/dist/';
 await mkdir('public/maplibre', { recursive: true });
-for (const file of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs']) {
-  await cp(from + file, 'public/maplibre/' + file);
-}
+// Nazwa z końcówką .js, bo serwer plików w aplikacji na telefonie pewniej podaje ją jako skrypt.
+await cp(from + 'maplibre-gl-worker.mjs', 'public/maplibre/worker.js');
