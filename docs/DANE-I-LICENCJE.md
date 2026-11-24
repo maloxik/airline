@@ -26,6 +26,13 @@ opłata zależna od liczby wyświetleń, zakaz zapisywania kafli do pracy offlin
 stylowanie i obowiązkowe logo Google. Dla gry z jednorazową płatnością koszt rosnący z każdym
 graczem to zły układ. Dedykowany produkt Google dla gier został wycofany kilka lat temu.
 
+### Światła miast nocą
+
+Prawdziwe nocne zdjęcia Ziemi: NASA GIBS, warstwa `VIIRS_CityLights_2012`, gotowe kafle mapowe
+dostępne bez klucza. Użyte w mockupie v6. Przed wydaniem sprawdzić zasady użycia zdjęć NASA
+i wymaganą atrybucję oraz to, czy kafle wolno pobierać z ich serwera w produkcji, czy trzeba
+je trzymać u siebie.
+
 ## Lotniska
 
 - **[OurAirports](https://ourairports.com/data/)**: domena publiczna, aktualizowane codziennie,
