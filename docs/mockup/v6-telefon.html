@@ -68,6 +68,20 @@ button{font-family:var(--f);color:inherit}
 .box{border-radius:18px;background:var(--soft);padding:12px 14px 14px;margin:12px 0;font:400 14.5px/1.4 var(--f)}
 .box .t{display:block;font:700 15px/1.2 var(--f);margin-bottom:4px}
 .go[disabled]{opacity:.38;pointer-events:none}
+.intro{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:flex-end;padding:0 24px 34px;color:#fff;
+  background:linear-gradient(180deg,rgba(5,9,20,0) 32%,rgba(5,9,20,.86) 80%);transition:opacity .6s}
+.intro.off{opacity:0;pointer-events:none}
+.intro small{font:600 12px var(--f);letter-spacing:.16em;text-transform:uppercase;opacity:.7}
+.intro h1{font:700 56px/1 var(--f);letter-spacing:-.03em;margin:6px 0 10px}
+.intro p{font:400 17px/1.42 var(--f);margin:0 0 20px;opacity:.92;max-width:310px}
+.intro .go{margin-top:10px}
+.intro .go.sec{background:rgba(255,255,255,.15);color:#fff}
+.pickbar{position:absolute;left:14px;right:14px;top:16px;z-index:9;border-radius:20px;padding:13px 16px;font:600 15px/1.3 var(--f);text-align:center;display:none}
+.picking .pickbar{display:block}
+.pre .hud,.pre .dock,.pre .toast{visibility:hidden}
+.pre:not(.picking) .ap{display:none}
+.field{width:100%;border:1.5px solid var(--line);background:var(--soft);color:var(--txt);border-radius:16px;padding:14px 16px;font:600 18px var(--f);outline:none;margin-bottom:12px}
+.field:focus{border-color:var(--brand)}
 .fx{width:0;height:0;position:relative;pointer-events:none}
 .fx i{position:absolute;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--brand);animation:ring 1.4s ease-out forwards}
 .fx.big i{border-width:3px;animation-duration:2.4s}
@@ -155,7 +169,7 @@ button{font-family:var(--f);color:inherit}
 </style>
 </head>
 <body>
-<div class="phone" id="phone" data-tod="night">
+<div class="phone pre" id="phone" data-tod="night">
   <div id="map"></div>
   <div id="lights"></div>
 
@@ -169,6 +183,13 @@ button{font-family:var(--f);color:inherit}
     </button>
   </div>
   <div class="toast glass" id="toast"></div>
+  <div class="pickbar glass">Wybierz lotnisko, z którego zaczniesz</div>
+  <div class="intro" id="intro">
+    <small>Nazwa robocza</small><h1>Airline</h1>
+    <p>Załóż linię lotniczą na prawdziwej mapie. Światła pokazują, gdzie naprawdę mieszkają ludzie.</p>
+    <button class="go" id="iNew">Nowa linia</button>
+    <button class="go sec" id="iDemo">Zobacz przykład: Silesia Air</button>
+  </div>
 
   <nav class="dock glass" id="dock">
     <button data-a="routes"><svg viewBox="0 0 24 24"><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 17c8-.5 3-10 10-10.5"/></svg>Trasy</button>
@@ -200,7 +221,7 @@ const AP=[
  ['IST','Stambuł',28.751,41.275,15,0,1,'','Stambułu'],['MAD','Madryt',-3.567,40.472,6.5,0,1,'','Madrytu'],
  ['LIS','Lizbona',-9.136,38.774,3,0,1.5,'','Lizbony'],['DUB','Dublin',-6.270,53.421,2,0,1,'','Dublina']
 ].map(a=>({code:a[0],name:a[1],ll:[a[2],a[3]],catch:a[4],land:a[5],tour:a[6],by:a[7],gen:a[8]}));
-const by=Object.fromEntries(AP.map(a=>[a.code,a])), BASE=by.KTW;
+const by=Object.fromEntries(AP.map(a=>[a.code,a]));let BASE=by.KTW, AIRNAME='Silesia Air', picking=false;
 // Prawdziwe typy. Parametry przybliżone, wpisane z pamięci.
 const TYPES={
  AT76:{maker:'ATR',name:'72-600',seats:72,range:1400,speed:510,rwy:1300,lease:18,from:'TLS',len:27.2,kind:'tp',h:24,fix:4000,km:12,pod:1},
@@ -220,14 +241,18 @@ const RIVAL=[['WAW','CDG','POL'],['WAW','FRA','POL'],['WAW','ARN','POL'],['KRK',
 const INFO={KTW:[3200,5.6],WAW:[3690,18.5],KRK:[2550,9.4],GDN:[2800,5.9],WRO:[2500,3.9],POZ:[2500,2.8],RZE:[3200,1],LTN:[2160,16],CDG:[4200,67],FRA:[4000,59],
   MUC:[4000,37],BER:[4000,23],DTM:[2000,2.9],BGY:[2930,16],FCO:[3900,40],BCN:[3350,50],ATH:[4000,28],OSL:[3600,25],ARN:[3300,22],CPH:[3600,27],AMS:[3800,62],
   VIE:[3600,30],PRG:[3700,14],BUD:[3700,15],SPU:[2550,3.3],BOJ:[3200,1.9],IST:[4100,76],MAD:[4350,60],LIS:[3800,34],DUB:[3100,32]};
-const bases=new Set(['KTW']);
+const bases=new Set([BASE.code]);
+// konkurencja lądowa: dla Katowic wpisana ręcznie, dla innych baz szacowana z odległości
+const LS=a=>{if(BASE.code==='KTW')return a.land;const d=dist(BASE.ll,a.ll);return d<120?.985:d<300?.75:d<500?.5:d<750?.25:d<1000?.08:0;};
+const LB=a=>BASE.code==='KTW'?a.by:dist(BASE.ll,a.ll)<300?'samochód':'pociąg albo samochód';
+const regFor=i=>{const w=AIRNAME.trim().toUpperCase().split(/\s+/),ini=((w[0]||'X')[0]+(w[1]?w[1][0]:(w[0]||'XX')[1]||'X')).replace(/[^A-Z]/g,'X');return 'SP-'+ini+String.fromCharCode(65+i%26);};
 let fleet=[{reg:'SP-SAA',type:'AT76',to:'WAW'},{reg:'SP-SAB',type:'AT76',to:'BGY'},{reg:'SP-SAC',type:'AT76',to:'SPU'},{reg:'SP-SAD',type:'DH8D',to:'DTM'},{reg:'SP-SAE',type:'E295',to:'LTN'}];
 let routes=[{to:'WAW',rot:3,pm:1,plane:fleet[0],grow:1},{to:'DTM',rot:2,pm:1,plane:fleet[3],grow:1},{to:'LTN',rot:1,pm:1,plane:fleet[4],grow:1},{to:'BGY',rot:1,pm:1,plane:fleet[1],grow:1},{to:'SPU',rot:1,pm:1,plane:fleet[2],grow:1}];
 const routeTo=c=>routes.find(r=>r.to===c), freePlanes=()=>fleet.filter(p=>!p.to);
 let cash=4820000, brand=LIVS[0][1], demand=false, sel=null, view=null, deliveries=[];
 // znajomość marki w każdym mieście (0–1): tam, gdzie linia lata, rośnie sama; kampania ją podbija
-const aw=Object.fromEntries(AP.map(a=>[a.code,a.code==='KTW'?1:['WAW','KRK','WRO','POZ','GDN','RZE'].includes(a.code)?.55:.15]));routes.forEach(r=>aw[r.to]=1);
-let brandMode=false, fillFn=null; const offer={code:'RZE',sub:55,shown:false,accepted:false};
+const aw=Object.fromEntries(AP.map(a=>[a.code,a.code===BASE.code?1:['WAW','KRK','WRO','POZ','GDN','RZE'].includes(a.code)?.55:.15]));routes.forEach(r=>aw[r.to]=1);
+let brandMode=false, fillFn=null; const offer={code:'RZE',sub:55,shown:false,accepted:false,at:5*60+5+200};
 const phone=document.getElementById('phone'), sheet=document.getElementById('sheet'), body=document.getElementById('body'), dock=document.getElementById('dock');
 
 // ================= MODEL =================
@@ -237,7 +262,7 @@ function arc(a,b,n=96){const φ1=rad(a[1]),λ1=rad(a[0]),φ2=rad(b[1]),λ2=rad(b
   for(let i=0;i<=n;i++){const f=i/n,A=Math.sin((1-f)*d)/Math.sin(d),B=Math.sin(f*d)/Math.sin(d);
   const x=A*Math.cos(φ1)*Math.cos(λ1)+B*Math.cos(φ2)*Math.cos(λ2),y=A*Math.cos(φ1)*Math.sin(λ1)+B*Math.cos(φ2)*Math.sin(λ2),z=A*Math.sin(φ1)+B*Math.sin(φ2);
   out.push([deg(Math.atan2(y,x)),deg(Math.atan2(z,Math.sqrt(x*x+y*y)))]);}return out;}
-function calc(to,rot,pm,T){const a=by[to],d=dist(BASE.ll,a.ll),natural=20500*BASE.catch*a.catch*a.tour/Math.pow(d,1.2),air=natural*(1-a.land),p0=120+d*0.16,price=p0*pm;
+function calc(to,rot,pm,T){const a=by[to],d=dist(BASE.ll,a.ll),natural=20500*BASE.catch*a.catch*a.tour/Math.pow(d,1.2),air=natural*(1-LS(a)),p0=120+d*0.16,price=p0*pm;
   const want=air*(.4+.6*aw[to])*Math.pow(pm,-1.6),cap=T.seats*rot,pax=Math.min(cap,want);let rev=2*pax*price*7,cost=(T.fix+T.km*d)*rot*2*7;
   if(offer.accepted&&to===offer.code){rev+=2*pax*offer.sub*7;cost*=.8;}
   return {a,d,natural,air,p0,price,want,cap,pax,lf:pax/cap,rev,cost,profit:rev-cost,unmet:Math.max(0,want-cap)};}
@@ -281,7 +306,7 @@ function sil(k){const T=TYPES[k],tp=T.kind==='tp',h=T.h,L=T.len*8.1,x0=(420-L)/2
     <path d="${fus}" fill="none" ${st}/>
     <path d="M${n(x0+h*.34)} ${n(yT+h*.36)}L${n(x0+h*.92)} ${n(yT+h*.15)}H${n(x0+h*1.1)}L${n(x0+h*1.0)} ${n(yT+h*.42)}L${n(x0+h*.38)} ${n(yT+h*.45)}Z" fill="#2b3140"/>
     ${win}${door(x0+h*1.3)}${door(x1-h*3.2)}
-    <text x="${n(x0+h*1.9)}" y="${n(yT+h*.26)}" font-family="Instrument Sans,sans-serif" font-weight="700" font-size="6.6" fill="var(--brand)" letter-spacing=".6">SILESIA AIR</text>${wing}</svg>`;}
+    <text x="${n(x0+h*1.9)}" y="${n(yT+h*.26)}" font-family="Instrument Sans,sans-serif" font-weight="700" font-size="6.6" fill="var(--brand)" letter-spacing=".6">${AIRNAME.toUpperCase().slice(0,16)}</text>${wing}</svg>`;}
 
 // ================= SAMOLOTY: WIDOK Z GÓRY (ikony na mapie) =================
 const TOP={jet:['M12 .8C13 .8 13.6 2.6 13.6 4.6V9L22.4 14.4V16.2L13.6 13.7 13.4 19.2 16.5 21.4V22.8L12 21.8 7.5 22.8V21.4L10.6 19.2 10.4 13.7 1.6 16.2V14.4L10.4 9V4.6C10.4 2.6 11 .8 12 .8Z','M6.6 10.300h1.500v2.800h-1.500zM15.900 10.300h1.500v2.800h-1.500z'],
@@ -371,14 +396,16 @@ map.on('load',()=>{
   map.on('click','routes-hit',e=>{e.originalEvent.hit=1;select(e.features[0].properties.to);});
   map.on('click',e=>{if(!e.originalEvent.hit)closeSheet();});
   map.on('move',()=>{syncLights();declutter();document.getElementById('lights').style.opacity=Math.max(0,Math.min(1,(10.5-map.getZoom())/2.5));});map.on('idle',declutter);map.on('resize',()=>{lights.resize();syncLights();});
-  const nat=a=>a.code==='KTW'?-1:calc(a.code,1,1,TYPES.AT76).natural;
+  const nat=a=>a.code===BASE.code?-1:calc(a.code,1,1,TYPES.AT76).natural;
   for(const a of [...AP].sort((x,y)=>nat(y)-nat(x))){const el=document.createElement('div');el.className='ap';
     el.innerHTML=`<i class="ring"></i><i class="core"></i><span class="lbl"><b>${a.code}</b><em></em></span>`;
     el.onclick=ev=>{ev.stopPropagation();select(a.code);};apM[a.code]=el;new maplibregl.Marker({element:el}).setLngLat(a.ll).addTo(map);}
   const at=document.querySelector('#map .maplibregl-ctrl-attrib');if(at)at.classList.remove('maplibregl-compact-show');
-  buildFlights();ready=true;mapState();overview(0);requestAnimationFrame(tick);
+  buildFlights();ready=true;mapState();map.setLayoutProperty('routes','visibility','none');map.jumpTo({center:[3,48.5],zoom:3.7});map.easeTo({center:[19,50.5],zoom:3.7,duration:70000,easing:t=>t});requestAnimationFrame(tick);
 });
-function overview(ms=700){const pts=[BASE.ll,...routes.map(r=>by[r.to].ll)],b=new maplibregl.LngLatBounds(pts[0],pts[0]);pts.forEach(p=>b.extend(p));
+function overview(ms=700){if(picking){map.easeTo({center:[11.5,50.5],zoom:3.3,duration:ms});return;}
+  if(!routes.length){map.easeTo({center:BASE.ll,zoom:4.3,duration:ms});return;}
+  const pts=[BASE.ll,...routes.map(r=>by[r.to].ll)],b=new maplibregl.LngLatBounds(pts[0],pts[0]);pts.forEach(p=>b.extend(p));
   map.fitBounds(b,{padding:{top:120,bottom:130,left:44,right:44},duration:ms,maxZoom:5});}
 
 // ================= ROZKŁAD I RUCH =================
@@ -404,7 +431,7 @@ function fx(ll,text,big){const el=document.createElement('div');el.className='fx
   const m=new maplibregl.Marker({element:el}).setLngLat(ll).addTo(map);setTimeout(()=>m.remove(),2500);}
 const SUN='<circle cx="11" cy="11" r="4.2" fill="#f5b21a"/><g stroke="#f5b21a" stroke-width="1.8" stroke-linecap="round"><path d="M11 1.800v2.200M11 18v2.200M1.800 11h2.200M18 11h2.200M4.500 4.500l1.500 1.500M16 16l1.500 1.500M4.500 17.500l1.500-1.500M16 6l1.500-1.5"/></g>';
 const MOON='<path d="M17.500 13.200A7.200 7.2 0 0 1 8.8 4.500a7.200 7.2 0 1 0 8.7 8.700z" fill="#dfe6f5"/>';
-let gm=5*60+5, speed=1, lastTs=0, frame=0, shown=cash, tod='';const MIN_PER_MS=1440/90000;
+let gm=3*60+20, speed=0, lastTs=0, frame=0, shown=cash, tod='';const MIN_PER_MS=1440/90000;
 function tick(ts){const dt=Math.min(120,ts-lastTs||16);lastTs=ts;const dmin=dt*speed*MIN_PER_MS;gm+=dmin;frame++;
   const t=gm%1440,day=Math.floor(gm/1440),utc=((t/60-1)%24+24)%24;
   document.getElementById('time').textContent=hm(t);
@@ -418,12 +445,12 @@ function tick(ts){const dt=Math.min(120,ts-lastTs||16);lastTs=ts;const dmin=dt*s
     if(s.seg===0||s.seg===2){const a=along(f.pts,s.f,s.seg===2);P.push({type:'Feature',properties:{o:f.o,k:f.k,b:a.b},geometry:{type:'Point',coordinates:a.ll}});TR.push(line(a.tail,{o:f.o}));}}
   for(const d of [...deliveries]){const f=(gm-d.t0)/d.dur;
     if(f>=1){deliveries.splice(deliveries.indexOf(d),1);fleet.push(d.plane);fx(BASE.ll,'',true);
-      toast(`${d.plane.reg} wylądował w Katowicach. Włącz „Popyt” i wybierz dla niego lotnisko.`);overview();continue;}
+      toast(`${d.plane.reg} wylądował w bazie (${BASE.name}). Włącz „Popyt” i wybierz dla niego lotnisko.`);overview();continue;}
     const a=along(d.pts,f,false);P.push({type:'Feature',properties:{o:'new',k:TYPES[d.plane.type].kind,b:a.b},geometry:{type:'Point',coordinates:a.ll}});TR.push(line(a.tail,{o:'new'}));}
   map.getSource('planes').setData(fc(P));map.getSource('trails').setData(fc(TR));
   cash-=(routes.reduce((s,r)=>s+rc(r).cost,0)+leaseWeek())/10080*dmin;
   for(const r of routes)if(aw[r.to]<1)aw[r.to]=Math.min(1,aw[r.to]+dmin/1440*.25);
-  if(!offer.shown&&gm>5*60+5+200){offer.shown=true;toast('Rzeszów ma dla Ciebie ofertę. Dotknij lotniska na mapie.');mapState();}
+  if(!offer.shown&&!picking&&gm>offer.at){offer.shown=true;toast(`${by[offer.code].name} ma dla Ciebie ofertę. Dotknij lotniska na mapie.`);mapState();}
   if(frame%45===0){if(fillFn&&sheet.classList.contains('open'))fillFn();else if(brandMode)mapState();}
   shown+=(cash-shown)*Math.min(1,dt/260);document.getElementById('cash').textContent=zl(Math.round(shown/100)*100);
   let growing=false;for(const r of routes)if(r.grow<1){r.grow=Math.min(1,r.grow+dt/1100);growing=true;}
@@ -433,10 +460,10 @@ function tick(ts){const dt=Math.min(120,ts-lastTs||16);lastTs=ts;const dmin=dt*s
 document.getElementById('bTime').onclick=()=>{speed=speed===1?4:speed===4?0:1;document.getElementById('sp').textContent=speed?speed+'×':'II';};
 // bieżący albo najbliższy odcinek lotu
 function leg(f){const s=f.s,X=f.r.to,n=by[X];if(!s)return null;
-  if(s.seg===0)return {a:'KTW',b:X,dep:s.land-f.fm,arr:s.land,fr:s.f,txt:`W powietrzu, ląduje o ${hm(s.land)}`};
-  if(s.seg===2)return {a:X,b:'KTW',dep:s.land-f.fm,arr:s.land,fr:s.f,txt:`Wraca do bazy, ląduje o ${hm(s.land)}`};
-  if(s.seg===1)return {a:X,b:'KTW',dep:s.next,arr:s.next+f.fm,fr:0,txt:`Obsługa na ziemi (${n.name}), odlot o ${hm(s.next)}`};
-  return s.next!=null?{a:'KTW',b:X,dep:s.next,arr:s.next+f.fm,fr:0,txt:`W bazie, odlot o ${hm(s.next)}`}:{a:'KTW',b:X,fr:0,txt:'W bazie, na dziś koniec lotów'};}
+  if(s.seg===0)return {a:BASE.code,b:X,dep:s.land-f.fm,arr:s.land,fr:s.f,txt:`W powietrzu, ląduje o ${hm(s.land)}`};
+  if(s.seg===2)return {a:X,b:BASE.code,dep:s.land-f.fm,arr:s.land,fr:s.f,txt:`Wraca do bazy, ląduje o ${hm(s.land)}`};
+  if(s.seg===1)return {a:X,b:BASE.code,dep:s.next,arr:s.next+f.fm,fr:0,txt:`Obsługa na ziemi (${n.name}), odlot o ${hm(s.next)}`};
+  return s.next!=null?{a:BASE.code,b:X,dep:s.next,arr:s.next+f.fm,fr:0,txt:`W bazie, odlot o ${hm(s.next)}`}:{a:BASE.code,b:X,fr:0,txt:'W bazie, na dziś koniec lotów'};}
 let apView=null, stands=null, standTry=0, apFly=false;
 function leaveAp(){if(!apView)return;apView=null;stands=null;phone.classList.remove('apview');if(ready)map.getSource('parked').setData(fc([]));}
 // stanowiska postojowe: największa płyta przy lotnisku, rząd punktów wewnątrz niej, nos od strony przeciwnej do pasa
@@ -452,7 +479,7 @@ function findStands(code){const c=by[code].ll,fs=map.querySourceFeatures('openma
   const row=Object.values(rows).sort((a,b)=>b.length-a.length)[0];if(!row||row.length<2)return null;
   const rw=fs.find(f=>f.properties.class==='runway'&&f.geometry.type==='LineString'&&near(f)),rp=rw?rw.geometry.coordinates[0]:[c[0]+1,c[1]+1];
   const b=wide?(rp[1]>row[0][1]?180:0):(rp[0]>row[0][0]?270:90);return row.map(ll=>({ll,b}));}
-function hereNow(code){return fleet.filter(pl=>{if(code==='KTW'){if(!pl.to)return true;const f=flights.find(x=>x.o==='me'&&x.key===pl.to);return f&&f.s&&f.s.seg===3;}
+function hereNow(code){return fleet.filter(pl=>{if(code===BASE.code){if(!pl.to)return true;const f=flights.find(x=>x.o==='me'&&x.key===pl.to);return f&&f.s&&f.s.seg===3;}
   if(pl.to!==code)return false;const f=flights.find(x=>x.o==='me'&&x.key===code);return f&&f.s&&f.s.seg===1;});}
 function apLive(){
   if(!apFly&&(!stands||stands.fb)){const s2=frame%15===0?findStands(apView):null;if(s2){stands=s2;const m=s2[Math.floor(s2.length/2)].ll,c=by[apView].ll;map.easeTo({center:[(m[0]*2+c[0])/3,(m[1]*2+c[1])/3],offset:[0,-sheet.offsetHeight/2+44],zoom:13.7,duration:900});}
@@ -467,21 +494,21 @@ function airportView(code){const a=by[code];apView=code;stands=null;standTry=0;s
   apFly=true;requestAnimationFrame(()=>{map.flyTo({center:a.ll,zoom:13.7,offset:[0,-sheet.offsetHeight/2+44],duration:3400,curve:1.5,essential:true});map.once('moveend',()=>{apFly=false;});});}
 
 // karta lotniska: zakładki, informacje, konkurencja, baza
-function segHtml(code,tab){return `<div class="seg">`+[['trasa',code==='KTW'?'Trasy':'Trasa'],['info','Lotnisko'],['rywale','Konkurencja']].map(([k,l])=>`<button data-tab="${k}" class="${k===tab?'on':''}">${l}</button>`).join('')+`</div>`;}
+function segHtml(code,tab){return `<div class="seg">`+[['trasa',code===BASE.code?'Trasy':'Trasa'],['info','Lotnisko'],['rywale','Konkurencja']].map(([k,l])=>`<button data-tab="${k}" class="${k===tab?'on':''}">${l}</button>`).join('')+`</div>`;}
 function infoHtml(code){const a=by[code],[rwy,pax]=INFO[code],big=pax>=25,mid=pax>=8,fee=big?95:mid?60:28,bc=big?9:mid?4.8:2.4,bw=big?140:mid?70:35,r=routeTo(code),row=(l,v)=>`<div class="sum"><span>${l}</span><b>${v}</b></div>`;
   let h=`<div class="stats"><div><b>${String(pax).replace('.',',')}</b><span>mln pasażerów rocznie</span></div><div><b>${num(rwy)} m</b><span>najdłuższy pas</span></div><div><b>${fee} zł</b><span>opłat za pasażera</span></div></div>`
     +row('Ludzie w 90 minut dojazdu',a.catch.toLocaleString('pl-PL')+' mln')+row('Wolne terminy lotów',big?'tylko poza szczytem':mid?'ograniczone rano':'bez ograniczeń')
     +row('Największy samolot',rwy>=2300?'każdy z rynku':rwy>=1900?'do A320neo':'tylko turbośmigłowe')+row('Sezon',a.tour>1.4?'szczyt latem, zimą pusto':'ruch równy cały rok')
     +row('Znają Twoją linię',Math.round(aw[code]*100)+'%');
-  if(code==='KTW')h+=`<div class="box"><span class="t">Twoja baza główna</span>Nocuje tu ${fleet.length} samolotów. Stąd startują wszystkie Twoje trasy.</div>`;
+  if(code===BASE.code)h+=`<div class="box"><span class="t">Twoja baza główna</span>Nocuje tu ${fleet.length} samolotów. Stąd startują wszystkie Twoje trasy.</div>`;
   else if(bases.has(code))h+=`<div class="box"><span class="t">Twoja baza</span>Samoloty mogą tu nocować i latać stąd na własne trasy.</div>`;
   else h+=`<div class="box"><span class="t">Baza na tym lotnisku</span>Samoloty mogłyby tu nocować i latać stąd na własne trasy. Otwarcie kosztuje ${String(bc).replace('.',',')} mln zł (hangar, załogi), potem ${bw} tys. zł tygodniowo.${r?'':' Najpierw otwórz trasę do tego lotniska.'}
       <button class="go" id="pBase" data-c="${bc}" style="margin-top:10px" ${r&&cash>=bc*1e6?'':'disabled'}>Otwórz bazę · ${String(bc).replace('.',',')} mln zł</button></div>`;
   return h+`<button class="go sec" id="pZoom">Zobacz lotnisko z bliska</button><p class="fine">Liczby o lotnisku są przybliżone.</p>`;}
 function rivalHtml(code){const a=by[code],other=(x)=>x[0]===code?x[1]:x[0],here=RIVAL.filter(x=>x[0]===code||x[1]===code);let h='';
-  if(code!=='KTW'){const direct=here.filter(x=>other(x)==='KTW'),r=routeTo(code),p0=Math.round(120+dist(BASE.ll,a.ll)*.16);
-    h+=`<div class="box"><span class="t">Na trasie z Katowic</span>`+(direct.length?direct.map(x=>`Lata tu też <b>${AIRL[x[2]].n}</b>: 1 lot dziennie, bilet około ${Math.round(p0*.92)} zł${r?` (Twój: ${Math.round(rc(r).price)} zł)`:''}.`).join(' '):`Nikt inny nie lata z Katowic do ${a.gen}.`);
-    const nb=RIVAL.filter(x=>(x[0]==='KRK'&&x[1]===code)||(x[1]==='KRK'&&x[0]===code));
+  if(code!==BASE.code){const direct=here.filter(x=>other(x)===BASE.code),r=routeTo(code),p0=Math.round(120+dist(BASE.ll,a.ll)*.16);
+    h+=`<div class="box"><span class="t">Na trasie z ${BASE.gen}</span>`+(direct.length?direct.map(x=>`Lata tu też <b>${AIRL[x[2]].n}</b>: 1 lot dziennie, bilet około ${Math.round(p0*.92)} zł${r?` (Twój: ${Math.round(rc(r).price)} zł)`:''}.`).join(' '):`Nikt inny nie lata z ${BASE.gen} do ${a.gen}.`);
+    const nb=BASE.code!=='KTW'?[]:RIVAL.filter(x=>(x[0]==='KRK'&&x[1]===code)||(x[1]==='KRK'&&x[0]===code));
     if(nb.length)h+=` Z sąsiedniego Krakowa lata <b>${nb.map(x=>AIRL[x[2]].n).join(', ')}</b>, a to ta sama okolica i ci sami pasażerowie.`;h+=`</div>`;}
   const byA={};for(const x of here)(byA[x[2]]=byA[x[2]]||[]).push(by[other(x)].name);
   const keys=Object.keys(byA);
@@ -492,8 +519,8 @@ function rivalHtml(code){const a=by[code],other=(x)=>x[0]===code?x[1]:x[0],here=
 function bindAp(code){body.querySelectorAll('.seg [data-tab]').forEach(b=>b.onclick=()=>select(code,b.dataset.tab));
   if(q('#pZoom'))q('#pZoom').onclick=()=>airportView(code);
   if(q('#pBase'))q('#pBase').onclick=()=>{cash-=(+q('#pBase').dataset.c)*1e6;bases.add(code);fx(by[code].ll,'',true);toast(`${by[code].name} jest teraz Twoją drugą bazą. W mockupie baza tylko się zaznacza.`);select(code,'info');};}
-function showBase(tab){sel='KTW';view='ap';if(tab==='trasa'){showRoutes(true);return;}
-  openSheet(`<div class="hd"><div><h2>Katowice</h2><p>KTW · Twoja baza główna</p></div>${X}</div>`+segHtml('KTW',tab)+(tab==='info'?infoHtml('KTW'):rivalHtml('KTW')));bindAp('KTW');mapState();}
+function showBase(tab){sel=BASE.code;view='ap';if(tab==='trasa'){showRoutes(true);return;}
+  openSheet(`<div class="hd"><div><h2>${BASE.name}</h2><p>${BASE.code} · Twoja baza główna</p></div>${X}</div>`+segHtml(BASE.code,tab)+(tab==='info'?infoHtml(BASE.code):rivalHtml(BASE.code)));bindAp(BASE.code);mapState();}
 function live(){
   if(apView)apLive();
   body.querySelectorAll('[data-live]').forEach(e=>{const p=fleet.find(x=>x.reg===e.dataset.live),f=p&&p.to&&flights.find(q=>q.o==='me'&&q.key===p.to),l=f&&leg(f);
@@ -504,14 +531,14 @@ function live(){
 
 // ================= STAN MAPY =================
 function mapState(){
-  const w=weekTotal();document.getElementById('weekly').innerHTML=`tydzień <span class="${pn(w)}">${sgn(w)} tys. zł</span>`;
+  const w=weekTotal();document.getElementById('weekly').innerHTML=`${AIRNAME} · <span class="${pn(w)}">${sgn(w)} tys.</span>`;
   if(!ready)return;
   map.getSource('routes').setData(routesFC());map.setPaintProperty('routes','line-opacity',apView?.18:.9);
   map.setFilter('routes-glow',['==',['get','to'],sel&&routeTo(sel)?sel:'']);
-  for(const l of ['rail-a','rail-b'])map.setLayoutProperty(l,'visibility',sel==='WAW'?'visible':'none');
-  map.getSource('preview').setData(fc(sel&&sel!=='KTW'&&!routeTo(sel)?[line(arcTo(sel))]:[]));
+  for(const l of ['rail-a','rail-b'])map.setLayoutProperty(l,'visibility',sel==='WAW'&&BASE.code==='KTW'?'visible':'none');
+  map.getSource('preview').setData(fc(sel&&sel!==BASE.code&&!routeTo(sel)?[line(arcTo(sel))]:[]));
   const order=[];
-  for(const a of AP){const el=apM[a.code],r=routeTo(a.code),base=a.code==='KTW';
+  for(const a of AP){const el=apM[a.code],r=routeTo(a.code),base=!picking&&a.code===BASE.code;
     const off=offer.shown&&!offer.accepted&&a.code===offer.code&&!r;
     el.className='ap'+(base?' base':r?' served':'')+(sel===a.code?' sel':'')+(off?' offer':'')+(!base&&bases.has(a.code)?' base2':'');
     const ring=el.children[0],core=el.children[1],lbl=el.children[2],em=lbl.children[1];let top=base?13:r?10:8,show=base||!!r||sel===a.code,score=0;
@@ -522,6 +549,7 @@ function mapState(){
         ring.style.cssText=`width:${or*2}px;height:${or*2}px`;core.style.cssText=`width:${cr*2}px;height:${cr*2}px`;top=cr+4;show=true;em.textContent=Math.round(c.air);}
       else if(r){em.textContent=sgn(c.profit);em.className=pn(c.profit);}}
     if(off){show=true;score+=1e7;}
+    if(picking){show=true;score=INFO[a.code][1];}
     lbl.style.top=top+'px';order.push({el:lbl,show,p:base?1e9:sel===a.code?1e8:(r?1e6:0)+score});}
   map.getSource('aw').setData(fc(AP.map(a=>({type:'Feature',properties:{a:aw[a.code]},geometry:{type:'Point',coordinates:a.ll}}))));
   prio=order.sort((x,y)=>y.p-x.p);declutter();}
@@ -536,11 +564,11 @@ function openSheet(html,tall,keepAp){if(!keepAp)leaveAp();fillFn=null;body.inner
   const x=body.querySelector('#sx');if(x)x.onclick=closeSheet;}
 function closeSheet(){if(!sheet.classList.contains('open'))return;sheet.classList.remove('open');dock.classList.remove('hide');const had=sel||apView;leaveAp();sel=null;view=null;mapState();if(had)overview(had===true?700:1400);}
 const q=s=>body.querySelector(s);
-function select(code,tab='trasa'){sel=code;view='ap';
-  if(code==='KTW'){showBase(tab);return;}
+function select(code,tab='trasa'){if(picking){pickCard(code);return;}sel=code;view='ap';
+  if(code===BASE.code){showBase(tab);return;}
   const a=by[code],r=routeTo(code),free=freePlanes()[0],T=TYPES[r?r.plane.type:free?free.type:'AT76'],c=r?rc(r):calc(code,1,1,T),fm=flightMin(c.d,T);
-  const land=a.land?`Z <b>${num(c.natural)}</b> osób dziennie ${a.land>=.5?'aż ':''}<b>${num(c.natural*a.land)}</b> wybiera ${a.by}. Samolotem chce lecieć <b>${num(c.air)}</b>.`
-    :`<b>${num(c.natural)}</b> osób dziennie chce tu lecieć z Katowic. Lądem nikt nie jedzie, za daleko.`;
+  const land=LS(a)?`Z <b>${num(c.natural)}</b> osób dziennie ${LS(a)>=.5?'aż ':''}<b>${num(c.natural*LS(a))}</b> wybiera ${LB(a)}. Samolotem chce lecieć <b>${num(c.air)}</b>.`
+    :`<b>${num(c.natural)}</b> osób dziennie chce tu lecieć z ${BASE.gen}. Lądem nikt nie jedzie, za daleko.`;
   const season=a.tour>1.4?' Kierunek wakacyjny: w lipcu chętnych będzie cztery razy więcej.':'';
   const pct=Math.round(aw[code]*100),camp=aw[code]<.99?`<button class="go sec" id="pCamp">Kampania w mieście · 60 tys. zł</button>`:'';
   const ob=offer.shown&&code===offer.code?(offer.accepted?`<div class="offerbox"><span class="t">Umowa z lotniskiem i samorządem</span>Dopłata ${offer.sub} zł do każdego pasażera i brak opłat lotniskowych przez rok.</div>`
@@ -565,7 +593,7 @@ function select(code,tab='trasa'){sel=code;view='ap';
   openSheet(h);bindAp(code);
   if(q('#pCamp'))q('#pCamp').onclick=()=>{const o=aw[code];aw[code]=Math.min(1,o+.35);cash-=60000;fx(a.ll,'',true);
     toast(`Kampania ruszyła. ${a.name}: linię zna już ${Math.round(aw[code]*100)}% ludzi (było ${Math.round(o*100)}%).`);select(code);};
-  if(q('#pOffer'))q('#pOffer').onclick=()=>{offer.accepted=true;toast('Umowa z Rzeszowem podpisana: dopłata do pasażera i rok bez opłat.');select(code);};
+  if(q('#pOffer'))q('#pOffer').onclick=()=>{offer.accepted=true;toast(`Umowa podpisana (${by[offer.code].name}): dopłata do pasażera i rok bez opłat.`);select(code);};
   if(q('#pBuy'))q('#pBuy').onclick=()=>showFleet('rynek');
   if(q('#pOpen'))q('#pOpen').onclick=()=>{const p=freePlanes()[0];p.to=code;routes.push({to:code,rot:1,pm:1,plane:p,grow:0});buildFlights();select(code);};
   if(q('#pClose'))q('#pClose').onclick=()=>{r.plane.to=null;routes=routes.filter(x=>x!==r);buildFlights();select(code);};
@@ -579,17 +607,17 @@ function select(code,tab='trasa'){sel=code;view='ap';
   requestAnimationFrame(()=>{const A=a.ll,B=BASE.ll;map.fitBounds(new maplibregl.LngLatBounds([Math.min(A[0],B[0]),Math.min(A[1],B[1])],[Math.max(A[0],B[0]),Math.max(A[1],B[1])]),
     {padding:{top:110,bottom:sheet.offsetHeight+34,left:56,right:56},maxZoom:4.9,duration:700});});}
 function showRoutes(fromBase){view='routes';if(!fromBase)sel=null;const w=weekTotal();
-  openSheet(`<div class="hd"><div><h2>${fromBase?'Katowice':'Trasy'}</h2><p>${fromBase?'KTW · Twoja baza · 4,6 mln ludzi w 90 minut dojazdu':routes.length+' tras z Katowic'}</p></div>${X}</div>`+(fromBase?segHtml('KTW','trasa'):'')
+  openSheet(`<div class="hd"><div><h2>${fromBase?BASE.name:'Trasy'}</h2><p>${fromBase?BASE.code+' · Twoja baza · '+BASE.catch.toLocaleString('pl-PL')+' mln ludzi w 90 minut dojazdu':routes.length+' tras z '+BASE.gen}</p></div>${X}</div>`+(fromBase?segHtml(BASE.code,'trasa'):'')
     +routes.map(r=>{const c=rc(r),T=TYPES[r.plane.type];return `<div class="rowl" data-to="${r.to}"><div class="c">${r.to}</div><div class="m"><b>${by[r.to].name}</b><span data-live="${r.plane.reg}"></span></div><div class="v ${pn(c.profit)}">${sgn(c.profit)} tys.</div></div>`;}).join('')
     +`<div class="sum t"><span>Razem, po ratach leasingu</span><b class="${pn(w)}">${sgn(w)} tys. zł</b></div>`,routes.length>5);
-  body.querySelectorAll('.rowl').forEach(d=>d.onclick=()=>select(d.dataset.to));if(fromBase)bindAp('KTW');live();mapState();}
+  body.querySelectorAll('.rowl').forEach(d=>d.onclick=()=>select(d.dataset.to));if(fromBase)bindAp(BASE.code);live();mapState();}
 let fleetTab='moja';
 function showFleet(tab){fleetTab=tab;view='fleet';sel=null;
   let h=`<div class="hd"><div><h2>Flota</h2><p>${fleet.length} samolotów${freePlanes().length?', wolnych: '+freePlanes().length:', wszystkie latają'}</p></div>${X}</div>
     <div class="seg"><button data-t="moja" class="${tab==='moja'?'on':''}">Moje samoloty</button><button data-t="rynek" class="${tab==='rynek'?'on':''}">Rynek</button></div>
     <div class="liv">Malowanie ${LIVS.map(l=>`<button title="${l[0]}" data-c="${l[1]}" style="background:${l[1]}" class="${l[1]===brand?'on':''}"></button>`).join('')}</div>`;
   if(tab==='moja')h+=fleet.map(p=>{const T=TYPES[p.type];return `<div class="plane-card">${sil(p.type)}<div class="n">${T.maker} ${T.name}</div>
-      <div class="s">${p.reg} · ${T.seats} miejsc · ${p.to?'Katowice – '+by[p.to].name:'bez trasy'}</div><div class="s" data-live="${p.reg}" style="color:var(--txt);margin-top:3px"></div></div>`;}).join('');
+      <div class="s">${p.reg} · ${T.seats} miejsc · ${p.to?BASE.name+' – '+by[p.to].name:'bez trasy'}</div><div class="s" data-live="${p.reg}" style="color:var(--txt);margin-top:3px"></div></div>`;}).join('');
   else h+=Object.entries(TYPES).map(([k,T])=>`<div class="plane-card">${sil(k)}<div class="mk">${T.maker}</div><div class="n">${T.name}</div>
       <div class="spec"><div><b>${T.seats}</b><span>miejsc</span></div><div><b>${num(T.range)} km</b><span>zasięg</span></div><div><b>${T.speed}</b><span>km/h</span></div><div><b>${num(T.rwy)} m</b><span>pas</span></div></div>
       <button class="go" data-lease="${k}">Leasing ${T.lease} tys. zł / tydz.</button></div>`).join('')
@@ -608,19 +636,53 @@ dock.onclick=e=>{const b=e.target.closest('button');if(!b)return;const a=b.datas
   else{const on=a==='demand'?!demand:!brandMode;demand=a==='demand'&&on;brandMode=a==='brand'&&on;
     phone.classList.toggle('demand',demand);dock.querySelector('[data-a=demand]').classList.toggle('on',demand);dock.querySelector('[data-a=brand]').classList.toggle('on',brandMode);
     map.setLayoutProperty('aw','visibility',brandMode?'visible':'none');mapState();
-    if(demand)toast('Niebieskie koło: ilu ludzi dziennie poleci z Katowic. Szara obwódka: ilu woli pociąg albo samochód.');
+    if(demand)toast(`Niebieskie koło: ilu ludzi dziennie poleci z ${BASE.gen}. Szara obwódka: ilu woli pociąg albo samochód.`);
     if(brandMode)toast('Plama pokazuje, gdzie ludzie znają Twoją linię. Tam, gdzie latasz, rośnie sama. Kampania ją przyspiesza.');}};
 document.getElementById('bFin').onclick=showFin;
 let toastT;function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),6500);}
-function lease(k){const T=TYPES[k],o=ORIGIN[T.from],reg='SP-SA'+String.fromCharCode(65+fleet.length+deliveries.length),d=dist(o.ll,BASE.ll),du=d/T.speed*60;
+function lease(k){const T=TYPES[k],o=ORIGIN[T.from],reg=regFor(fleet.length+deliveries.length),d=dist(o.ll,BASE.ll),du=d/T.speed*60;
   deliveries.push({pts:arc(o.ll,BASE.ll,160),t0:gm,dur:du,plane:{reg,type:k,to:null}});sheet.classList.remove('open');dock.classList.remove('hide');sel=null;view=null;mapState();
   map.fitBounds(new maplibregl.LngLatBounds([Math.min(o.ll[0],BASE.ll[0]),Math.min(o.ll[1],BASE.ll[1])],[Math.max(o.ll[0],BASE.ll[0]),Math.max(o.ll[1],BASE.ll[1])]),{padding:{top:150,bottom:150,left:50,right:50},duration:900});
-  toast(`${T.maker} ${T.name} (${reg}) leci ${o.name} do Katowic. Ląduje o ${hm(gm+du)}.`);}
+  toast(`${T.maker} ${T.name} (${reg}) leci ${o.name} do ${BASE.gen}. Ląduje o ${hm(gm+du)}.`);}
 (()=>{const g=document.getElementById('grabz');let y0=null;
   g.addEventListener('pointerdown',e=>{y0=e.clientY;sheet.style.transition='none';try{g.setPointerCapture(e.pointerId);}catch(_){}});
   g.addEventListener('pointermove',e=>{if(y0!=null)sheet.style.transform=`translateY(${Math.max(0,e.clientY-y0)}px)`;});
   const up=e=>{if(y0==null)return;const d=e.clientY-y0;y0=null;sheet.style.transition='';sheet.style.transform='';if(d>80)closeSheet();};
   g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);})();
+// ================= START GRY =================
+const intro=document.getElementById('intro');
+function beginPlay(){map.setLayoutProperty('routes','visibility','visible');phone.classList.remove('pre','picking');intro.classList.add('off');gm=5*60+5;speed=1;document.getElementById('sp').textContent='1×';offer.at=gm+200;map.stop();}
+document.getElementById('iDemo').onclick=()=>{beginPlay();mapState();overview(1600);};
+document.getElementById('iNew').onclick=()=>{intro.classList.add('off');picking=true;phone.classList.add('picking');fleet=[];routes=[];deliveries=[];bases.clear();buildFlights();map.stop();mapState();overview(1400);};
+function pickCard(code){sel=code;BASE=by[code];for(const k in ARC)delete ARC[k];const a=BASE,[rwy,pax]=INFO[code],riv=[...new Set(RIVAL.filter(x=>x[0]===code||x[1]===code).map(x=>AIRL[x[2]].n))];
+  const top=AP.filter(x=>x.code!==code).map(x=>({x,c:calc(x.code,1,1,TYPES.AT76)})).filter(o=>o.c.d<=TYPES.AT76.range).sort((m,n)=>n.c.air-m.c.air).slice(0,4);
+  const verdict=pax>=25?['Trudny start','Wielki port: wysokie opłaty, mało wolnych terminów i silni rywale.']:pax>=8?['Wymagający start','Spore lotnisko. Ludzi dużo, ale konkurencja już tu jest.']:['Dobry start','Tanie lotnisko i dużo wolnego pola.'];
+  openSheet(`<div class="hd"><div><h2>${a.name}</h2><p>${a.code} · ${a.catch.toLocaleString('pl-PL')} mln ludzi w 90 minut dojazdu</p></div>${X}</div>
+    <div class="stats"><div><b>${String(pax).replace('.',',')}</b><span>mln pasażerów rocznie</span></div><div><b>${num(rwy)} m</b><span>najdłuższy pas</span></div><div><b>${riv.length}</b><span>${riv.length===1?'rywal na miejscu':'rywali na miejscu'}</span></div></div>
+    <div class="box" style="margin-top:0"><span class="t">${verdict[0]}</span>${verdict[1]}${riv.length?' Latają stąd: '+riv.join(', ')+'.':''}</div>
+    <p class="note" style="margin-bottom:4px"><b>Dokąd ludzie chcą stąd latać</b> (w zasięgu pierwszego samolotu):</p>
+    ${top.map(o=>`<div class="sum"><span>${o.x.name}</span><b>${num(o.c.air)} dziennie</b></div>`).join('')}
+    <button class="go" id="pStart" style="margin-top:14px">Zacznij tutaj</button>`);
+  q('#pStart').onclick=()=>nameCard(code);mapState();
+  requestAnimationFrame(()=>map.easeTo({center:a.ll,zoom:4.4,offset:[0,-sheet.offsetHeight/2+50],duration:800}));}
+function nameCard(code){const a=by[code];AIRNAME=code==='KTW'?'Silesia Air':a.name+' Air';
+  openSheet(`<div class="hd"><div><h2>Twoja linia</h2><p>Baza: ${a.name} (${a.code})</p></div>${X}</div>
+    <input class="field" id="nm" maxlength="18" value="${AIRNAME}" aria-label="Nazwa linii">
+    <div class="liv">Malowanie ${LIVS.map(l=>`<button title="${l[0]}" data-c="${l[1]}" style="background:${l[1]}" class="${l[1]===brand?'on':''}"></button>`).join('')}</div>
+    <div class="plane-card" id="prev">${sil('AT76')}<div class="n">ATR 72-600</div><div class="s">Twój pierwszy samolot: 72 miejsca, zasięg 1400 km, w leasingu.</div></div>
+    <p class="note">Na start dostajesz też <b>3 mln zł</b>. Reszta zależy od tego, dokąd polecisz.</p>
+    <button class="go" id="pGo">Startuj</button>`);
+  const redraw=()=>{q('#prev svg').outerHTML=sil('AT76');};
+  q('#nm').oninput=e=>{AIRNAME=e.target.value.trim()||'Linia';redraw();};
+  body.querySelectorAll('.liv button').forEach(b=>b.onclick=()=>{recolor(b.dataset.c);body.querySelectorAll('.liv button').forEach(x=>x.classList.toggle('on',x===b));});
+  q('#pGo').onclick=()=>newGame(code);}
+function newGame(code){picking=false;BASE=by[code];for(const k in ARC)delete ARC[k];bases.clear();bases.add(code);
+  fleet=[{reg:regFor(0),type:'AT76',to:null}];routes=[];deliveries=[];cash=3000000;shown=cash;
+  for(const a of AP)aw[a.code]=a.code===code?1:dist(BASE.ll,a.ll)<450?.55:.15;
+  offer.shown=false;offer.accepted=false;offer.code=AP.filter(a=>a.code!==code&&INFO[a.code][1]<6).sort((x,y)=>dist(BASE.ll,x.ll)-dist(BASE.ll,y.ll))[0].code;
+  buildFlights();sheet.classList.remove('open');dock.classList.remove('hide');sel=null;view=null;beginPlay();
+  demand=true;brandMode=false;phone.classList.add('demand');dock.querySelector('[data-a=demand]').classList.add('on');mapState();overview(1500);
+  toast(`${AIRNAME} startuje z ${BASE.gen}. Koła pokazują, dokąd ludzie chcą latać. Dotknij lotniska, żeby otworzyć pierwszą trasę.`);}
 document.getElementById('sky').innerHTML=MOON;mapState();
 </script>
 </body>
