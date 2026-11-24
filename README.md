@@ -1,9 +1,38 @@
 # Airline (nazwa robocza)
 
-Symulator linii lotniczej na prawdziwej mapie świata: prawdziwe lotniska, prawdziwe miasta,
+Symulator linii lotniczej na prawdziwej mapie: prawdziwe lotniska, prawdziwe miasta,
 popyt wynikający z prawdziwej geografii.
 
-Stan: **pomysł + roadmapa** (2026-11-23). Kodu jeszcze nie ma.
+Stan (2026-11-24): **faza 0 z roadmapy gotowa lokalnie.** Działa aplikacja z mapą Europy,
+dniem i nocą, światłami miast i 685 prawdziwymi lotniskami. Rozgrywki jeszcze nie ma.
+Brakuje zdalnego repozytorium i wdrożenia.
+
+## Uruchomienie
+
+```
+npm install
+npm run dev
+```
+
+| Polecenie | Co robi |
+|---|---|
+| `npm run dev` | aplikacja w trybie deweloperskim |
+| `npm run check` | sprawdzenie typów i testy |
+| `npm run build` | wersja do wdrożenia w `dist/` |
+| `npm run data` | pobiera dane OurAirports i buduje od nowa `public/data/world.json` |
+
+## Struktura
+
+| Miejsce | Co tam jest |
+|---|---|
+| `src/sim/` | rdzeń gry: geografia, słońce, zegar, typy danych świata. Czysty TypeScript, bez przeglądarki i bez mapy, z testami |
+| `src/app/` | aplikacja: mapa (MapLibre) i interfejs (React) |
+| `tools/data/` | skrypty budujące dane świata z prawdziwych źródeł |
+| `public/data/world.json` | zbudowana paczka danych, trzymana w repozytorium |
+| `docs/` | projekt gry, roadmapa, licencje danych, mockupy |
+
+`src/sim` ma osobne sprawdzenie typów bez dostępu do API przeglądarki (`tsconfig.sim.json`),
+więc przypadkowe użycie `document` albo mapy w rdzeniu nie przejdzie `npm run check`.
 
 ## Dokumenty
 
@@ -12,23 +41,10 @@ Stan: **pomysł + roadmapa** (2026-11-23). Kodu jeszcze nie ma.
 - [docs/KONKURENCJA.md](docs/KONKURENCJA.md) — co już istnieje i gdzie jest luka
 - [docs/DANE-I-LICENCJE.md](docs/DANE-I-LICENCJE.md) — mapy, lotniska, miasta: skąd brać i na jakich warunkach
 - [docs/OPIS-GRY.md](docs/OPIS-GRY.md) — opis gry do wklejenia w inne AI, bez sugestii interfejsu
-- [docs/mockup/](docs/mockup/index.html) — klikalne mockupy ekranu głównego (wymagają serwera i internetu): v2–v4 wcześniejsze kierunki, v5 żywa mapa pod szeroki ekran, v6 telefon (aktualny)
+- [docs/mockup/v6-telefon.html](docs/mockup/v6-telefon.html) — zaakceptowany mockup wyglądu i rozgrywki, wzorzec dla aplikacji
 
-## Struktura
+## Stos
 
-| Folder | Na co |
-|---|---|
-| `shared/` | rdzeń gry w czystym Kotlinie (KMP): symulacja, ekonomia, zapis — bez UI, z testami |
-| `androidApp/` | aplikacja Android (Compose) |
-| `iosApp/` | aplikacja iOS (czeka na Maca, jak w Urzędzie) |
-| `tools/` | skrypty budujące dane gry z surowych źródeł |
-| `data/raw/` | pobrane surowe zbiory (OurAirports, GeoNames…) — nie commitować dużych plików |
-| `data/processed/` | gotowe paczki danych wchodzące do gry |
-| `assets/` | grafika i dźwięk |
-| `docs/` | projekt gry, plany, decyzje |
-
-## Proponowany stos
-
-Rekomendacja z 2026-11-23 (do zatwierdzenia): TypeScript + MapLibre GL JS, wdrożenie na Vercel;
-przeglądarka i Steam jako główne platformy, telefon przez opakowanie tej samej aplikacji.
-Wcześniejszy pomysł (Kotlin Multiplatform) i układ folderów poniżej są do zmiany w fazie 0.
+TypeScript, Vite, React, MapLibre GL JS. Mapa bazowa z OpenFreeMap (dane OpenStreetMap),
+światła nocne z NASA GIBS, lotniska z OurAirports. Docelowo przeglądarka i Steam jako główne
+platformy, telefon przez opakowanie tej samej aplikacji.
