@@ -28,12 +28,9 @@ const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
 const NIGHT_LIGHTS =
   'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg';
 const VECTOR = 'openmaptiles';
-const BRAND = '#e0492f';
 /** Zmierzch rysujemy jako wiele cienkich warstw, żeby przejście było gładkie. */
 const TWILIGHT_STEPS = 32;
 const TWILIGHT_STEP_DEG = 0.42;
-/** Czas lokalny bazy względem UTC. Na razie stały, bo gra zaczyna się w Europie Środkowej. */
-const LOCAL_OFFSET_MIN = 60;
 const START = { center: [13.5, 50] as [number, number], zoom: 3.4 };
 
 export type TimeOfDay = 'day' | 'night';
@@ -74,6 +71,8 @@ export interface WorldMapOptions {
   lightsContainer: HTMLElement;
   world: WorldData;
   clock: GameClock;
+  /** Kolor linii gracza: trasy, samoloty, baza. */
+  color: string;
   onTick: (tick: MapTick) => void;
   onSelect: (airport: Airport | null) => void;
   /** Samoloty gracza w powietrzu o danej minucie doby. Wołane w każdej klatce. */
@@ -87,6 +86,10 @@ export interface WorldMap {
   setDemand: (view: DemandView | null) => void;
   /** Baza i lotniska, do których gracz lata. */
   setNetwork: (base: Airport | null, served: Airport[]) => void;
+  /** Zmienia kolor linii gracza na mapie. */
+  setColor: (color: string) => void;
+  /** Płynnie przenosi kamerę. `linear` daje równy, powolny przelot zamiast przyspieszania i hamowania. */
+  moveCamera: (to: { center: [number, number]; zoom: number; durationMs: number; linear?: boolean; offsetY?: number }) => void;
   /** Włącza widok znajomości marki (kod IATA → 0–1) albo go wyłącza (null). */
   setBrand: (values: Map<string, number> | null) => void;
   destroy: () => void;
@@ -186,6 +189,18 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
   let pendingDemand: DemandView | null = null;
   let pendingNetwork: { base: Airport | null; served: Airport[] } = { base: null, served: [] };
   let pendingBrand: Map<string, number> | null = null;
+  let color = opts.color;
+  /** Czas lokalny bazy względem UTC, w minutach: liczony z długości geograficznej. */
+  let localOffsetMin = 60;
+
+  const applyColor = (): void => {
+    map.setPaintProperty('routes', 'line-color', color);
+    map.setPaintProperty('selected', 'circle-stroke-color', color);
+    map.setPaintProperty('served', 'circle-color', color);
+    map.setPaintProperty('base', 'circle-stroke-color', color);
+    map.setPaintProperty('brand', 'circle-color', color);
+    for (const k of ['jet', 'tp'] as const) map.updateImage(`plane-${k}`, planeImage(k, color, '#fff'));
+  };
 
   const applyBrand = (): void => {
     map.setLayoutProperty('brand', 'visibility', pendingBrand ? 'visible' : 'none');
@@ -275,6 +290,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
 
   const applyNetwork = (): void => {
     const { base: b, served } = pendingNetwork;
+    if (b) localOffsetMin = Math.round(b.lng / 15) * 60;
     source(map, 'base').setData(fc(b ? [point(ll(b), { iata: b.iata })] : []));
     source(map, 'served').setData(fc(served.map((a) => point(ll(a), { iata: a.iata }))));
     source(map, 'routes').setData(fc(b ? served.map((a) => lineString(arc(ll(b), ll(a)), { to: a.iata })) : []));
@@ -287,7 +303,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     frame++;
     advance(clock, dt, speed);
     const date = gameDate(clock);
-    const minuteOfDay = (((date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60 + LOCAL_OFFSET_MIN) % 1440) + 1440) % 1440;
+    const minuteOfDay = (((date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60 + localOffsetMin) % 1440) + 1440) % 1440;
 
     if (baseReady && frame % 2 === 0) {
       source(base, 'night').setData(nightData());
@@ -344,7 +360,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       source: 'brand',
       layout: { visibility: 'none' },
       paint: {
-        'circle-color': BRAND,
+        'circle-color': color,
         'circle-opacity': 0.32,
         'circle-blur': 0.7,
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, ['*', ['get', 'a'], 16], 4, ['*', ['get', 'a'], 46], 7, ['*', ['get', 'a'], 130]],
@@ -352,12 +368,12 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     });
 
     map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 4, 'line-opacity': 0.55 } });
-    map.addLayer({ id: 'routes', type: 'line', source: 'routes', layout: { 'line-cap': 'round' }, paint: { 'line-color': BRAND, 'line-width': 2 } });
+    map.addLayer({ id: 'routes', type: 'line', source: 'routes', layout: { 'line-cap': 'round' }, paint: { 'line-color': color, 'line-width': 2 } });
     map.addLayer({
       id: 'selected',
       type: 'circle',
       source: 'selected',
-      paint: { 'circle-radius': 12, 'circle-color': 'rgba(224,73,47,.2)', 'circle-stroke-color': BRAND, 'circle-stroke-width': 2 },
+      paint: { 'circle-radius': 12, 'circle-color': 'rgba(255,255,255,.25)', 'circle-stroke-color': color, 'circle-stroke-width': 2.5 },
     });
     // Ciemna podkładka pod każdym lotniskiem: dzięki niej biały punkt nie ginie nocą wśród świateł miast.
     map.addLayer({
@@ -389,7 +405,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       type: 'circle',
       source: 'served',
       maxzoom: 11.5,
-      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 3, 7, 7.5], 'circle-color': BRAND, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 3, 7, 7.5], 'circle-color': color, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 },
     });
     // Widok popytu: szara obwódka = wszyscy podróżni, niebieskie koło = ci, którzy polecą samolotem.
     map.addLayer({
@@ -413,7 +429,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
       type: 'circle',
       source: 'base',
       maxzoom: 11.5,
-      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4.5, 7, 9], 'circle-color': '#ffffff', 'circle-stroke-color': BRAND, 'circle-stroke-width': 4.5 },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4.5, 7, 9], 'circle-color': '#ffffff', 'circle-stroke-color': color, 'circle-stroke-width': 4.5 },
     });
     const label = { 'text-color': '#ffffff', 'text-halo-color': '#14161a', 'text-halo-width': 1.6 };
     map.addLayer({
@@ -459,7 +475,7 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     map.addLayer({ id: 'trails', type: 'line', source: 'trails', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.65, 'line-blur': 1 } });
     for (const k of ['jet', 'tp'] as const) {
       map.addImage(`shadow-${k}`, planeImage(k, '#000'), { pixelRatio: 2 });
-      map.addImage(`plane-${k}`, planeImage(k, BRAND, '#fff'), { pixelRatio: 2 });
+      map.addImage(`plane-${k}`, planeImage(k, color, '#fff'), { pixelRatio: 2 });
       map.addImage(`job-${k}`, planeImage(k, '#ffffff', '#14161a'), { pixelRatio: 2 });
     }
     const planeLayout = {
@@ -525,6 +541,14 @@ export function createWorldMap(opts: WorldMapOptions): WorldMap {
     setNetwork: (b, served) => {
       pendingNetwork = { base: b, served };
       if (ready) applyNetwork();
+    },
+    setColor: (c) => {
+      color = c;
+      if (ready) applyColor();
+    },
+    moveCamera: (to) => {
+      map.stop();
+      map.easeTo({ center: to.center, zoom: to.zoom, duration: to.durationMs, offset: [0, to.offsetY ?? 0], ...(to.linear ? { easing: (t: number) => t } : {}) });
     },
     setBrand: (values) => {
       pendingBrand = values;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   AIRCRAFT,
   CLASS_LABEL,
@@ -54,13 +54,20 @@ import { aircraftSvg } from './aircraftArt';
 import { createWorldMap, type FlightOnMap, type WorldMap } from './map';
 
 const SPEEDS = [1, 4, 0] as const;
-const BRAND = '#e0492f';
-const SAVE_KEY = 'airline-save-v2';
+const SAVE_KEY = 'airline-save-v3';
+/** Malowania linii do wyboru na starcie. */
+const LIVERIES: [name: string, color: string][] = [
+  ['Cynober', '#e0492f'],
+  ['Szmaragd', '#12805c'],
+  ['Kobalt', '#2a5bd7'],
+  ['Grafit', '#3a3d46'],
+];
+/** Zasięg pierwszego samolotu (ATR 72-600): tyle sięgają pierwsze trasy. */
+const FIRST_PLANE_RANGE_KM = 1400;
 const START_ISO = '2027-02-16T04:05:00Z';
 const LOAN_STEP = 500_000;
 const COUNTRY = new Intl.DisplayNames(['pl'], { type: 'region' });
-const TIME = new Intl.DateTimeFormat('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
-const DAY = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' });
+const DAY = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const MONTHS = ['styczniu', 'lutym', 'marcu', 'kwietniu', 'maju', 'czerwcu', 'lipcu', 'sierpniu', 'wrześniu', 'październiku', 'listopadzie', 'grudniu'];
 const num = (n: number): string => Math.round(n).toLocaleString('pl-PL');
 const mln = (n: number): string => (n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: Math.abs(n) < 1e7 ? 2 : 1 });
@@ -96,20 +103,24 @@ const PANELS: { key: PanelKey; label: string; icon: ReactNode }[] = [
 ];
 
 interface Save {
-  v: 2;
+  v: 3;
   game: GameState;
+  color: string;
 }
-function loadSave(): GameState | null {
+function loadSave(): Save | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as Save;
-    return s.v === 2 && s.game?.baseIata && Array.isArray(s.game.fleet) && Array.isArray(s.game.offers) ? s.game : null;
+    return s.v === 3 && s.game?.baseIata && Array.isArray(s.game.fleet) && Array.isArray(s.game.offers) ? s : null;
   } catch {
     return null;
   }
 }
-const freshGame = (): GameState => newGame('KTW', 'Silesia Air', Math.floor(Math.random() * 1e9));
+/** Stan-zaślepka na czas ekranu startu: gra jeszcze się nie toczy. */
+const placeholderGame = (): GameState => newGame('KTW', 'Linia', 1);
+/** title = ekran tytułowy, pick = wybór lotniska, name = nazwa i malowanie, play = gra. */
+type Stage = 'title' | 'pick' | 'name' | 'play';
 
 async function loadJson<T>(url: string): Promise<T> {
   const r = await fetch(url);
@@ -136,7 +147,9 @@ const CloseIcon = () => (
     <path d="M2 2l9 9M11 2l-9 9" />
   </svg>
 );
-const Art = ({ type, airline }: { type: AircraftType; airline: string }) => <div className="art" dangerouslySetInnerHTML={{ __html: aircraftSvg(type, BRAND, airline) }} />;
+const Art = ({ type, airline, color }: { type: AircraftType; airline: string; color: string }) => (
+  <div className="art" dangerouslySetInnerHTML={{ __html: aircraftSvg(type, color, airline) }} />
+);
 
 export function App() {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -146,7 +159,16 @@ export function App() {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [realRoutes, setRealRoutes] = useState<RealRoutes | null | undefined>(undefined);
   const [error, setError] = useState('');
-  const [game, setGame] = useState<GameState>(() => loadSave() ?? freshGame());
+  const saved = useMemo(loadSave, []);
+  const [game, setGame] = useState<GameState>(() => saved?.game ?? placeholderGame());
+  const [color, setColor] = useState(saved?.color ?? LIVERIES[0]![1]);
+  const [stage, setStage] = useState<Stage>(saved ? 'play' : 'title');
+  const [pick, setPick] = useState<Airport | null>(null);
+  const [nameDraft, setNameDraft] = useState('');
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
+  const colorRef = useRef(color);
+  colorRef.current = color;
   const [selected, setSelected] = useState<Airport | null>(null);
   const [panel, setPanel] = useState<PanelKey | null>(null);
   const [fleetTab, setFleetTab] = useState<'mine' | 'market'>('mine');
@@ -176,7 +198,7 @@ export function App() {
   // Indeks świata powstaje, gdy są lotniska i wiadomo już, czy jest prawdziwy ruch (konkurencja na trasach).
   const index = useMemo(() => (world && realRoutes !== undefined ? indexWorld(world, realRoutes) : null), [world, realRoutes]);
   indexRef.current = index;
-  const base = index?.airports.get(game.baseIata) ?? null;
+  const base = (stage === 'play' && index?.airports.get(game.baseIata)) || null;
 
   /** Popyt z bazy do każdego lotniska w bieżącym miesiącu. */
   const fromBase = useMemo(() => {
@@ -197,14 +219,17 @@ export function App() {
       lightsContainer: lightsEl.current,
       world,
       clock,
+      color: colorRef.current,
       onTick: (t) => {
         setDate(t.date);
         setMonth(t.month);
         setMinuteOfDay(t.minuteOfDay);
         const ix = indexRef.current;
-        if (ix) setGame((g) => advanceGame(ix, g, t.month, t.minutes - g.minutes));
+        if (ix && stageRef.current === 'play') setGame((g) => advanceGame(ix, g, t.month, t.minutes - g.minutes));
       },
       onSelect: (airport) => {
+        if (stageRef.current === 'pick') return void setPick(airport);
+        if (stageRef.current !== 'play') return;
         setPanel(null);
         setSwapping(false);
         setSelected(airport);
@@ -213,7 +238,7 @@ export function App() {
         const ix = indexRef.current;
         const g = gameRef.current;
         const home = ix?.airports.get(g.baseIata);
-        if (!ix || !home) return [];
+        if (!ix || !home || stageRef.current !== 'play') return [];
         const here: [number, number] = [home.lng, home.lat];
         const out: FlightOnMap[] = [];
         g.routes.forEach((r, slot) => {
@@ -244,8 +269,21 @@ export function App() {
   }, [world]);
 
   useEffect(() => {
-    mapRef.current?.select(selected);
-  }, [selected]);
+    mapRef.current?.select(stage === 'play' ? selected : pick);
+  }, [selected, pick, stage]);
+  useEffect(() => {
+    mapRef.current?.setColor(color);
+  }, [color, world]);
+  // Kamera na ekranach startu: powolny przelot nad Europą, potem widok do wyboru lotniska.
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !world) return;
+    if (stage === 'title') {
+      m.moveCamera({ center: [4, 49], zoom: 3.7, durationMs: 0 });
+      m.moveCamera({ center: [20, 50.5], zoom: 3.7, durationMs: 80_000, linear: true });
+    } else if (stage === 'pick' && !pick) m.moveCamera({ center: [13, 50.5], zoom: 3.3, durationMs: 1200 });
+    else if (stage === 'pick' && pick) m.moveCamera({ center: [pick.lng, pick.lat], zoom: 4.4, durationMs: 800, offsetY: -250 });
+  }, [stage, pick, world]);
   useEffect(() => {
     mapRef.current?.setDemand(view === 'demand' && base ? { base, values: fromBase } : null);
   }, [view, base, fromBase, world]);
@@ -263,7 +301,7 @@ export function App() {
     const codes = new Set([g.baseIata, ...g.routes.map((r) => r.to), ...Object.keys(g.awareness)]);
     mapRef.current?.setBrand(new Map([...codes].map((c) => [c, awarenessOf(index, g, c)])));
   }, [brandKey, view, index]);
-  const speed = game.bankrupt ? 0 : (SPEEDS[speedIx] ?? 1);
+  const speed = game.bankrupt || stage !== 'play' ? 0 : (SPEEDS[speedIx] ?? 1);
   useEffect(() => {
     mapRef.current?.setSpeed(speed);
   }, [speed, world]);
@@ -271,8 +309,9 @@ export function App() {
   // Zapis gry: co kilka sekund i przy schowaniu aplikacji.
   useEffect(() => {
     const save = (): void => {
+      if (stageRef.current !== 'play') return;
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, game: gameRef.current } satisfies Save));
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 3, game: gameRef.current, color: colorRef.current } satisfies Save));
       } catch {
         /* brak miejsca albo zablokowany zapis: gra działa dalej bez zapisu */
       }
@@ -287,22 +326,59 @@ export function App() {
   }, []);
 
   const week = useMemo(() => (index ? weeklyResult(index, game, month) : null), [index, game, month]);
+  // Zegar pokazuje czas lokalny bazy, liczony z jej długości geograficznej.
+  const localDate = date && base ? new Date(date.getTime() + Math.round(base.lng / 15) * 3_600_000) : date;
   const level = levelOf(week?.revenue ?? 0);
   const showReport = Boolean(game.report) && !selected && !panel && !game.bankrupt;
-  const sheetOpen = Boolean(selected || panel || showReport || game.bankrupt);
+  const showReport0 = showReport && stage === 'play';
+  const sheetOpen = stage === 'play' ? Boolean(selected || panel || showReport0 || game.bankrupt) : stage === 'name' || (stage === 'pick' && Boolean(pick));
   const close = (): void => {
     setSelected(null);
     setPanel(null);
     setSwapping(false);
     setConfirmReset(false);
   };
+  /** Wraca do ekranu tytułowego i kasuje zapis. */
   const restart = (): void => {
-    const fresh = freshGame();
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch {
+      /* nic: zapis i tak zostanie nadpisany nową grą */
+    }
     if (clockRef.current) clockRef.current.minutes = 0;
-    setGame(fresh);
+    setGame(placeholderGame());
     setView('none');
+    setPick(null);
     close();
+    setStage('title');
   };
+  const begin = (): void => {
+    if (!pick) return;
+    const name = nameDraft.trim() || `${cityOf(pick)} Air`;
+    if (clockRef.current) clockRef.current.minutes = 0;
+    setGame(newGame(pick.iata, name, Math.floor(Math.random() * 1e9)));
+    setStage('play');
+    setView('demand');
+    close();
+    mapRef.current?.moveCamera({ center: [pick.lng, pick.lat], zoom: 4.3, durationMs: 1500 });
+    setPick(null);
+  };
+  /** Najmocniejsze kierunki z lotniska oglądanego przy wyborze bazy, w zasięgu pierwszego samolotu. */
+  const pickTop = useMemo(() => {
+    if (!pick || !index) return [];
+    return [...index.airports.values()]
+      .filter((a) => a !== pick)
+      .map((a) => ({ a, d: demand(index, pick, a, month) }))
+      .filter((o) => o.d.distanceKm <= FIRST_PLANE_RANGE_KM)
+      .sort((x, y) => y.d.air - x.d.air)
+      .slice(0, 4);
+  }, [pick, index, month]);
+  const pickRivalRoutes = useMemo(() => {
+    if (!pick || !index) return 0;
+    let n = 0;
+    for (const key of index.realTraffic.keys()) if (key.startsWith(`${pick.iata}-`) || key.endsWith(`-${pick.iata}`)) n++;
+    return n;
+  }, [pick, index]);
   const top = useMemo(
     () =>
       [...fromBase.entries()]
@@ -356,7 +432,97 @@ export function App() {
   };
 
   let sheet: ReactNode = null;
-  if (game.bankrupt) {
+  if (stage === 'pick' && pick) {
+    const verdict =
+      pickRivalRoutes > 80
+        ? ['Trudny start', 'Wielki port: silni rywale latają stąd prawie wszędzie.']
+        : pickRivalRoutes > 20
+          ? ['Wymagający start', 'Spore lotnisko. Ludzi dużo, ale konkurencja już tu jest.']
+          : ['Dobry start', 'Małe lotnisko i dużo wolnego pola.'];
+    sheet = (
+      <>
+        <div className="head">
+          <div>
+            <h2>{cityOf(pick)}</h2>
+            <p>
+              {pick.iata} · {pick.name} · {COUNTRY.of(pick.country) ?? pick.country}
+            </p>
+          </div>
+          <button className="x" onClick={() => setPick(null)} aria-label="Zamknij">
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="stats">
+          <div>
+            <b>{mln(pick.catchRaw)} mln</b>
+            <span>ludzi w zasięgu</span>
+          </div>
+          <div>
+            <b>{pick.wealth}</b>
+            <span>zamożność (Unia = 100)</span>
+          </div>
+          <div>
+            <b>{pickRivalRoutes}</b>
+            <span>tras innych linii</span>
+          </div>
+        </div>
+        <div className="box">
+          <b className="t">{verdict[0]}</b>
+          {verdict[1]}
+        </div>
+        <p className="note legend">Dokąd ludzie chcą stąd latać (w zasięgu pierwszego samolotu):</p>
+        {pickTop.map(({ a, d }) => (
+          <div className="sum" key={a.iata}>
+            <span>{cityOf(a)}</span>
+            <b>{num(d.air)} dziennie</b>
+          </div>
+        ))}
+        <button
+          className="go"
+          onClick={() => {
+            setNameDraft(`${cityOf(pick)} Air`);
+            setStage('name');
+          }}
+        >
+          Zacznij tutaj
+        </button>
+      </>
+    );
+  } else if (stage === 'name' && pick) {
+    sheet = (
+      <>
+        <div className="head">
+          <div>
+            <h2>Twoja linia</h2>
+            <p>
+              Baza: {cityOf(pick)} ({pick.iata})
+            </p>
+          </div>
+          <button className="x" onClick={() => setStage('pick')} aria-label="Wróć">
+            <CloseIcon />
+          </button>
+        </div>
+        <input className="field" maxLength={18} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} aria-label="Nazwa linii" />
+        <div className="liv">
+          Malowanie
+          {LIVERIES.map(([label, c]) => (
+            <button key={c} title={label} aria-label={label} className={c === color ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} />
+          ))}
+        </div>
+        <div className="card">
+          <Art type={aircraftType('AT76')} airline={nameDraft.trim() || 'Linia'} color={color} />
+          <b>ATR 72-600</b>
+          <span>Twój pierwszy samolot: 72 miejsca, zasięg 1400 km, w leasingu.</span>
+        </div>
+        <p className="note">Na start dostajesz też 3 mln zł. Reszta zależy od tego, dokąd polecisz.</p>
+        <button className="go" onClick={begin}>
+          Startuj
+        </button>
+      </>
+    );
+  } else if (stage !== 'play') {
+    sheet = null;
+  } else if (game.bankrupt) {
     sheet = (
       <>
         {head('Bankructwo', `${game.airlineName} · dług przekroczył limit banku`, false)}
@@ -435,7 +601,7 @@ export function App() {
           </div>
           <p className="status">{phaseText(phase, selected)}</p>
           <div className="plane">
-            <Art type={type} airline={game.airlineName} />
+            <Art type={type} airline={game.airlineName} color={color} />
             <div>
               <b>
                 {type.maker} {type.name}
@@ -597,7 +763,7 @@ export function App() {
         </>
       );
     }
-  } else if (showReport && game.report && index) {
+  } else if (showReport0 && game.report && index) {
     const r = game.report;
     const name = (to: string): string => {
       const a = index.airports.get(to);
@@ -680,7 +846,7 @@ export function App() {
             const dest = index?.airports.get(p.routeTo ?? p.job?.to ?? '');
             return (
               <div className="card" key={p.reg}>
-                <Art type={type} airline={game.airlineName} />
+                <Art type={type} airline={game.airlineName} color={color} />
                 <b>
                   {type.maker} {type.name}
                 </b>
@@ -709,7 +875,7 @@ export function App() {
             </div>
             {AIRCRAFT.filter((t) => t.cls === marketClass).map((type) => (
               <div className="card" key={type.id}>
-                <Art type={type} airline={game.airlineName} />
+                <Art type={type} airline={game.airlineName} color={color} />
                 <small className="maker">{type.maker}</small>
                 <b className="big">{type.name}</b>
                 <div className="spec">
@@ -902,7 +1068,7 @@ export function App() {
 
   return (
     // Interfejs jest zawsze jasny. Ciemny wariant zostaje w stylach pod przyszłą opcję w ustawieniach.
-    <div className="game" data-theme="light">
+    <div className={`game stage-${stage}`} data-theme="light" style={{ '--brand': color } as CSSProperties}>
       <div ref={baseEl} className="layer" />
       <div ref={lightsEl} className="layer lights" />
       <div ref={mapEl} className="layer" />
@@ -937,15 +1103,25 @@ export function App() {
         </div>
         <button className="pill glass time" onClick={() => setSpeedIx((i) => (i + 1) % SPEEDS.length)} aria-label="Zmień tempo czasu">
           <span>
-            <b className="clock">{date ? TIME.format(date) : '--:--'}</b>
+            <b className="clock">{date ? hm(minuteOfDay) : '--:--'}</b>
             <br />
-            <span className="sub">{date ? DAY.format(date) : ''}</span>
+            <span className="sub">{localDate ? DAY.format(localDate) : ''}</span>
           </span>
           <span className="speed">{speed ? `${speed}×` : 'II'}</span>
         </button>
       </header>
 
       {error && <p className="error glass">Nie udało się wczytać danych świata: {error}</p>}
+
+      {stage === 'pick' && <p className="pickbar glass">Wybierz lotnisko, z którego zaczniesz</p>}
+      <div className={`intro${stage === 'title' ? '' : ' off'}`}>
+        <small>Nazwa robocza</small>
+        <h1>Airline</h1>
+        <p>Załóż linię lotniczą na prawdziwej mapie. Światła pokazują, gdzie naprawdę mieszkają ludzie.</p>
+        <button className="go" onClick={() => setStage('pick')}>
+          Nowa linia
+        </button>
+      </div>
 
       <nav className={`dock glass${sheetOpen ? ' hide' : ''}`} aria-label="Menu gry">
         {PANELS.map((p) => (

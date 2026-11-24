@@ -141,6 +141,13 @@ Na prośbę „zrobić z tego pełnoprawną strategię” do gry weszły naraz k
 Ceny samolotów i raty są w skali gry (wyliczone z wielkości i klasy), nie z cenników.
 Balansu nikt jeszcze nie stroił: liczby są pierwszym przybliżeniem.
 
+### Ekran startu (wersja 0.4.0, 2026-11-24)
+
+Gra zaczyna się od ekranu tytułowego, potem gracz wybiera lotnisko bazowe na mapie (karta z prawdziwymi danymi:
+ludzie w zasięgu, zamożność, liczba tras innych linii, najmocniejsze kierunki w zasięgu pierwszego samolotu),
+nadaje nazwę i wybiera jedno z czterech malowań. Zegar pokazuje czas lokalny bazy. Po bankructwie gra wraca do tytułu.
+Brakuje: poziomów trudności, wyboru pierwszego samolotu, kilku zapisów gry.
+
 ## Faza 4: Flota i siatka (L)
 
 - Katalog samolotów w pięciu klasach, ze zmyślonymi nazwami i realistycznymi parametrami.

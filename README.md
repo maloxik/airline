@@ -3,7 +3,7 @@
 Symulator linii lotniczej na prawdziwej mapie: prawdziwe lotniska, prawdziwe miasta,
 popyt wynikający z prawdziwej geografii.
 
-Stan (2026-11-24): **grywalna strategia, wersja 0.3.0.** Mapa świata z dniem i nocą, 1191 prawdziwych lotnisk,
+Stan (2026-11-24): **grywalna strategia, wersja 0.4.0** (z ekranem startu: wybór lotniska bazowego, nazwy i malowania). Mapa świata z dniem i nocą, 1191 prawdziwych lotnisk,
 popyt z prawdziwych danych, 22 typy samolotów (leasing i zakup), trasy z konkurencją, marka i kampanie,
 zlecenia cargo i czarterowe, kredyt, raport tygodnia, zapis gry.
 Repozytorium: github.com/maloxik/airline (prywatne, gałąź `main`). Gra jest na telefon: buduje się do pliku APK.
